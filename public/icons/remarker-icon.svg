@@ -1,11 +1,13 @@
-<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="128" height="128" rx="28" fill="#0F172A"/>
-  <path d="M28 94C43 88 60 86 82 90C90 91 97 92 104 91" stroke="#FFE66D" stroke-width="10" stroke-linecap="round"/>
-  <g transform="rotate(-24 65 62)">
-    <rect x="43" y="27" width="38" height="60" rx="10" fill="#2DD4BF"/>
-    <path d="M49 40H75" stroke="#DFFCF8" stroke-width="5" stroke-linecap="round" opacity=".82"/>
-    <path d="M47 82H77L69 101H55L47 82Z" fill="#F8FAFC"/>
-    <path d="M55 101H69L62 111L55 101Z" fill="#172033"/>
-  </g>
-  <path d="M91 23L95 35L107 39L95 43L91 55L87 43L75 39L87 35L91 23Z" fill="#A78BFA"/>
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="256" height="256" rx="56" fill="black"/>
+<rect x="40" y="188" width="176" height="28" rx="6" fill="#FFD061"/>
+<path d="M185.172 39.9321L181.667 42.9741L106.87 107.875L104.432 110.161L105.651 113.359C105.651 113.359 111.135 127.984 100.62 138.495V138.651L100.469 138.797L99.7082 139.714L99.0989 140.323L79.75 159.214L105.953 166.375L116.01 156.318L117.073 155.406L117.224 155.255H117.38C127.891 144.74 142.516 150.224 142.516 150.224L145.714 151.443L148 149.005L212.901 74.2083L215.948 70.7031L185.172 39.9321ZM184.562 53.3384L202.541 71.3125L159.885 120.37L135.51 95.9946L184.562 53.3384ZM128.193 102.386L153.484 127.677L144.037 138.646L117.224 111.834L128.193 102.386ZM116.62 124.938L130.938 139.26C124.883 139.485 117.551 141.391 110.677 148.094C110.579 148.191 110.467 148.152 110.37 148.245L109.151 149.313L106.562 146.724L107.63 145.505L107.781 145.198C114.484 138.324 116.39 130.992 116.62 124.938Z" fill="url(#paint0_linear_21_10)"/>
+<defs>
+<linearGradient id="paint0_linear_21_10" x1="31.5964" y1="84.6369" x2="120.759" y2="180.679" gradientUnits="userSpaceOnUse">
+<stop stop-color="#DBBDFF"/>
+<stop offset="0.4" stop-color="#C2CBFF"/>
+<stop offset="0.75" stop-color="#B5EBFF"/>
+<stop offset="1" stop-color="#CBA3FF"/>
+</linearGradient>
+</defs>
 </svg>

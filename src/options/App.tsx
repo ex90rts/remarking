@@ -32,6 +32,7 @@ import {
   Download,
   ExternalLink,
   FileText,
+  Github,
   Highlighter,
   Languages,
   RefreshCcw,
@@ -60,6 +61,8 @@ const HIGHLIGHT_COLORS: Record<HighlightColor, string> = {
   pink: "#ffc2d4",
   purple: "#d8c7ff"
 };
+
+const REMARKING_GITHUB_URL = "https://github.com/ex90rts/remarking";
 
 const markdownBodySx = {
   "& p": { my: 1 },
@@ -106,6 +109,9 @@ export function App() {
           <Typography variant="h6" sx={{ ml: 1, flexGrow: 1 }}>
             {t.common.appName}
           </Typography>
+          <Button startIcon={<Github size={16} />} href={REMARKING_GITHUB_URL} target="_blank" rel="noreferrer">
+            GitHub
+          </Button>
           <Button startIcon={<RefreshCcw size={16} />} onClick={reload}>
             {t.common.refresh}
           </Button>
