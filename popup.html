@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Remarker</title>
+  </head>
+  <body>
+    <div class="popup">
+      <header>
+        <strong>Remarker</strong>
+        <span id="statusText"></span>
+      </header>
+      <label>
+        <input id="globalEnabled" type="checkbox" />
+        <span id="globalEnabledLabel"></span>
+      </label>
+      <label>
+        <input id="siteEnabled" type="checkbox" />
+        <span id="siteEnabledLabel"></span>
+      </label>
+      <button id="openOptions" type="button"></button>
+    </div>
+    <script type="module" src="/src/popup/popup.ts"></script>
+  </body>
+</html>
