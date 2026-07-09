@@ -104,7 +104,7 @@ const CONTENT_MESSAGES: Record<SupportedLanguage, ContentMessages> = {
     copyExplanation: "复制解释",
     close: "关闭",
     copied: "已复制",
-    savedHighlights: "已保存 {{count}} 条划线。"
+    savedHighlights: "已保存 {{count}} 条划线。",
   },
   "zh-TW": {
     copy: "複製",
@@ -127,7 +127,7 @@ const CONTENT_MESSAGES: Record<SupportedLanguage, ContentMessages> = {
     copyExplanation: "複製解釋",
     close: "關閉",
     copied: "已複製",
-    savedHighlights: "已儲存 {{count}} 條標記。"
+    savedHighlights: "已儲存 {{count}} 條標記。",
   },
   en: {
     copy: "Copy",
@@ -150,7 +150,7 @@ const CONTENT_MESSAGES: Record<SupportedLanguage, ContentMessages> = {
     copyExplanation: "Copy explanation",
     close: "Close",
     copied: "Copied",
-    savedHighlights: "Saved {{count}} highlight{{plural}}."
+    savedHighlights: "Saved {{count}} highlight{{plural}}.",
   },
   es: {
     copy: "Copiar",
@@ -173,8 +173,8 @@ const CONTENT_MESSAGES: Record<SupportedLanguage, ContentMessages> = {
     copyExplanation: "Copiar explicación",
     close: "Cerrar",
     copied: "Copiado",
-    savedHighlights: "{{count}} resaltado{{plural}} guardado{{plural}}."
-  }
+    savedHighlights: "{{count}} resaltado{{plural}} guardado{{plural}}.",
+  },
 };
 
 const WORD_PATTERN = /^[A-Za-z]+(?:[-'][A-Za-z]+)*$/;
@@ -186,7 +186,7 @@ const HIGHLIGHT_COLORS: Record<HighlightColor, string> = {
   green: "#b7f7c2",
   blue: "#b8ddff",
   pink: "#ffc2d4",
-  purple: "#d8c7ff"
+  purple: "#d8c7ff",
 };
 
 let shadowRoot: ShadowRoot;
@@ -215,12 +215,17 @@ async function init(): Promise<void> {
   await restoreHighlights();
   await restoreLookupExplanations();
 
-  document.addEventListener("selectionchange", debounce(handleSelectionChange, 120));
+  document.addEventListener(
+    "selectionchange",
+    debounce(handleSelectionChange, 120),
+  );
   document.addEventListener("mousedown", handleDocumentMouseDown, true);
 }
 
 async function loadMessages(): Promise<void> {
-  const settings = await sendMessage<{ ui: { language: SupportedLanguage; autoCloseLookupPanelOnCopy?: boolean } }>({ type: "GET_SETTINGS" }).catch(() => undefined);
+  const settings = await sendMessage<{
+    ui: { language: SupportedLanguage; autoCloseLookupPanelOnCopy?: boolean };
+  }>({ type: "GET_SETTINGS" }).catch(() => undefined);
   t = getContentMessages(settings?.ui.language ?? detectBrowserLanguage());
   autoCloseLookupPanelOnCopy = Boolean(settings?.ui.autoCloseLookupPanelOnCopy);
 }
@@ -231,7 +236,12 @@ function getContentMessages(language: SupportedLanguage): ContentMessages {
 
 function detectBrowserLanguage(): SupportedLanguage {
   const language = navigator.language.toLowerCase();
-  if (language === "zh-cn" || language === "zh-hans" || language.startsWith("zh-hans-")) return "zh-CN";
+  if (
+    language === "zh-cn" ||
+    language === "zh-hans" ||
+    language.startsWith("zh-hans-")
+  )
+    return "zh-CN";
   if (
     language === "zh-tw" ||
     language === "zh-hk" ||
@@ -246,15 +256,27 @@ function detectBrowserLanguage(): SupportedLanguage {
   return "en";
 }
 
-function interpolate(template: string, values: Record<string, string | number>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => String(values[key] ?? ""));
+function interpolate(
+  template: string,
+  values: Record<string, string | number>,
+): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) =>
+    String(values[key] ?? ""),
+  );
 }
 
 async function isEnabledForCurrentPage(): Promise<boolean> {
-  const cache = await chrome.storage.local.get(["globalEnabled", "disabledSites"]);
+  const cache = await chrome.storage.local.get([
+    "globalEnabled",
+    "disabledSites",
+  ]);
   const globalEnabled = cache.globalEnabled ?? true;
-  const disabledSites = Array.isArray(cache.disabledSites) ? cache.disabledSites : [];
-  return Boolean(globalEnabled && !disabledSites.includes(location.hostname.toLowerCase()));
+  const disabledSites = Array.isArray(cache.disabledSites)
+    ? cache.disabledSites
+    : [];
+  return Boolean(
+    globalEnabled && !disabledSites.includes(location.hostname.toLowerCase()),
+  );
 }
 
 function createOverlay(): void {
@@ -436,14 +458,7 @@ function createOverlay(): void {
     .${LOOKUP_CLASS} {
       background: transparent;
       border-bottom: 2px solid ${LOOKUP_UNDERLINE_COLOR};
-      border-radius: 2px;
       cursor: help;
-      padding-bottom: 1px;
-      text-decoration-line: underline;
-      text-decoration-style: solid;
-      text-decoration-color: ${LOOKUP_UNDERLINE_COLOR};
-      text-decoration-thickness: 2px;
-      text-underline-offset: 3px;
     }
     .${LOOKUP_CLASS}:hover {
       background: rgba(249, 115, 22, 0.08);
@@ -487,7 +502,9 @@ function handleSelectionChange(): void {
     range,
     rect,
     isWord: WORD_PATTERN.test(text),
-    isCrossBlock: getBlockElement(range.startContainer) !== getBlockElement(range.endContainer)
+    isCrossBlock:
+      getBlockElement(range.startContainer) !==
+      getBlockElement(range.endContainer),
   };
   renderToolbar(currentSelection);
 }
@@ -504,13 +521,31 @@ function renderToolbar(selection: SelectionState): void {
 
   if (selection.isWord) {
     toolbar.append(createIconButton("volume", t.speak, speakSelection));
-    toolbar.append(createIconButton("sparkles", t.explain, () => explainCurrentSelection(false)));
+    toolbar.append(
+      createIconButton("sparkles", t.explain, () =>
+        explainCurrentSelection(false),
+      ),
+    );
     toolbar.append(createIconButton("book-plus", t.saveWord, saveCurrentWord));
   } else {
-    toolbar.append(createIconButton("sparkles", t.translate, () => explainCurrentSelection(false)));
-    toolbar.append(createIconButton("highlighter", selection.isCrossBlock ? t.splitHighlight : t.highlight, () => saveHighlight(selection, "yellow")));
+    toolbar.append(
+      createIconButton("sparkles", t.translate, () =>
+        explainCurrentSelection(false),
+      ),
+    );
+    toolbar.append(
+      createIconButton(
+        "highlighter",
+        selection.isCrossBlock ? t.splitHighlight : t.highlight,
+        () => saveHighlight(selection, "yellow"),
+      ),
+    );
     for (const color of Object.keys(HIGHLIGHT_COLORS) as HighlightColor[]) {
-      const button = createIconButton("circle", interpolate(t.highlightColor, { color }), () => saveHighlight(selection, color));
+      const button = createIconButton(
+        "circle",
+        interpolate(t.highlightColor, { color }),
+        () => saveHighlight(selection, color),
+      );
       button.className = "color";
       button.title = color;
       button.style.background = HIGHLIGHT_COLORS[color];
@@ -523,7 +558,11 @@ function renderToolbar(selection: SelectionState): void {
   panel.classList.remove("visible");
 }
 
-function createIconButton(icon: IconName, label: string, onClick: () => void | Promise<void>): HTMLButtonElement {
+function createIconButton(
+  icon: IconName,
+  label: string,
+  onClick: () => void | Promise<void>,
+): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
   button.title = label;
@@ -533,7 +572,9 @@ function createIconButton(icon: IconName, label: string, onClick: () => void | P
     event.preventDefault();
     event.stopPropagation();
     suppressSelectionChange();
-    Promise.resolve(onClick()).catch((error) => showStatusPanel(formatError(error), true));
+    Promise.resolve(onClick()).catch((error) =>
+      showStatusPanel(formatError(error), true),
+    );
   });
   return button;
 }
@@ -549,7 +590,7 @@ async function speakSelection(): Promise<void> {
 
   const response = await sendMessage<{ provider: string; audioUrl?: string }>({
     type: "GET_PRONUNCIATION",
-    word: currentSelection.text
+    word: currentSelection.text,
   });
 
   if (response.audioUrl) {
@@ -566,7 +607,10 @@ async function explainCurrentSelection(forceRefresh: boolean): Promise<void> {
 
   suppressSelectionChange();
   currentExplanationMarkdown = undefined;
-  showExplanationPanel(currentSelection.isWord ? t.explainingProgress : t.translatingProgress, { isLoading: true });
+  showExplanationPanel(
+    currentSelection.isWord ? t.explainingProgress : t.translatingProgress,
+    { isLoading: true },
+  );
   const explanation = await sendMessage<ExplanationRecord>({
     type: "EXPLAIN_SELECTION",
     selectionKind: currentSelection.isWord ? "word" : "text",
@@ -574,7 +618,7 @@ async function explainCurrentSelection(forceRefresh: boolean): Promise<void> {
     context: getContextForRange(currentSelection.range),
     sourceUrl: location.href,
     sourceTitle: document.title,
-    forceRefresh
+    forceRefresh,
   });
 
   currentExplanationMarkdown = explanation.result;
@@ -604,17 +648,26 @@ async function createVocabularyRecord(translation?: string): Promise<void> {
       contextSentence: getContextForRange(currentSelection.range),
       translation: translation?.trim() || undefined,
       createdAt: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    },
   });
 }
 
-async function saveHighlight(selection: SelectionState, color: HighlightColor): Promise<void> {
-  const existingHighlight = findExistingHighlightElementForRange(selection.range);
+async function saveHighlight(
+  selection: SelectionState,
+  color: HighlightColor,
+): Promise<void> {
+  const existingHighlight = findExistingHighlightElementForRange(
+    selection.range,
+  );
   const existingId = existingHighlight?.dataset.remarkerId;
   if (existingHighlight && existingId) {
     existingHighlight.style.background = HIGHLIGHT_COLORS[color];
-    await sendMessage({ type: "UPDATE_HIGHLIGHT_COLOR", id: existingId, color });
+    await sendMessage({
+      type: "UPDATE_HIGHLIGHT_COLOR",
+      id: existingId,
+      color,
+    });
     showTransientSuccess(existingHighlight.getBoundingClientRect());
     return;
   }
@@ -637,7 +690,7 @@ async function saveHighlight(selection: SelectionState, color: HighlightColor): 
     anchor,
     status: "active",
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   };
 
   wrapRange(selection.range, color, id);
@@ -645,7 +698,10 @@ async function saveHighlight(selection: SelectionState, color: HighlightColor): 
   hideToolbar();
 }
 
-async function saveSplitHighlights(selection: SelectionState, color: HighlightColor): Promise<void> {
+async function saveSplitHighlights(
+  selection: SelectionState,
+  color: HighlightColor,
+): Promise<void> {
   const blocks = getIntersectingBlocks(selection.range);
   let saved = 0;
 
@@ -668,7 +724,7 @@ async function saveSplitHighlights(selection: SelectionState, color: HighlightCo
       anchor,
       status: "active",
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
 
     wrapRange(range, color, id);
@@ -676,14 +732,20 @@ async function saveSplitHighlights(selection: SelectionState, color: HighlightCo
     saved += 1;
   }
 
-  showStatusPanel(interpolate(t.savedHighlights, { count: saved, plural: saved === 1 ? "" : "s" }), false);
+  showStatusPanel(
+    interpolate(t.savedHighlights, {
+      count: saved,
+      plural: saved === 1 ? "" : "s",
+    }),
+    false,
+  );
 }
 
 async function restoreHighlights(): Promise<void> {
   currentUrlKey = normalizeUrlKey(location.href);
   const records = await sendMessage<HighlightRecord[]>({
     type: "GET_HIGHLIGHTS_FOR_URL",
-    urlKey: currentUrlKey
+    urlKey: currentUrlKey,
   });
   const snapshot = getAnchorTextSnapshot();
   const restorePlan: Array<{ record: HighlightRecord; match: RangeMatch }> = [];
@@ -693,12 +755,21 @@ async function restoreHighlights(): Promise<void> {
     if (matches.length === 1) {
       restorePlan.push({ record, match: matches[0] });
       if (record.status !== "active") {
-        await sendMessage({ type: "UPDATE_HIGHLIGHT_STATUS", id: record.id, status: "active" });
+        await sendMessage({
+          type: "UPDATE_HIGHLIGHT_STATUS",
+          id: record.id,
+          status: "active",
+        });
       }
     } else {
-      const status: HighlightStatus = matches.length === 0 ? "not_found" : "ambiguous";
+      const status: HighlightStatus =
+        matches.length === 0 ? "not_found" : "ambiguous";
       if (record.status !== status) {
-        await sendMessage({ type: "UPDATE_HIGHLIGHT_STATUS", id: record.id, status });
+        await sendMessage({
+          type: "UPDATE_HIGHLIGHT_STATUS",
+          id: record.id,
+          status,
+        });
       }
     }
   }
@@ -713,7 +784,7 @@ async function restoreHighlights(): Promise<void> {
 async function restoreLookupExplanations(): Promise<void> {
   const records = await sendMessage<ExplanationRecord[]>({
     type: "GET_WORD_EXPLANATIONS_FOR_URL",
-    urlKey: currentUrlKey
+    urlKey: currentUrlKey,
   });
   applyLookupMarkers(records);
 }
@@ -723,12 +794,20 @@ function applyLookupMarkers(records: ExplanationRecord[]): void {
   if (wordRecords.length === 0) return;
 
   const snapshot = getAnchorTextSnapshot();
-  const plan: Array<{ record: ExplanationRecord; range: Range; start: number }> = [];
+  const plan: Array<{
+    record: ExplanationRecord;
+    range: Range;
+    start: number;
+  }> = [];
 
   for (const record of wordRecords) {
     const word = record.selectedText.trim();
     for (const start of findWordMatchOffsets(snapshot.text, word)) {
-      const range = createRangeFromTextOffsets(start, start + word.length, snapshot);
+      const range = createRangeFromTextOffsets(
+        start,
+        start + word.length,
+        snapshot,
+      );
       if (!range || range.collapsed) continue;
       if (rangeIntersectsSelector(range, `.${LOOKUP_CLASS}`)) continue;
       plan.push({ record, range, start });
@@ -742,7 +821,9 @@ function applyLookupMarkers(records: ExplanationRecord[]): void {
     });
 }
 
-function getLatestWordRecords(records: ExplanationRecord[]): ExplanationRecord[] {
+function getLatestWordRecords(
+  records: ExplanationRecord[],
+): ExplanationRecord[] {
   const byWord = new Map<string, ExplanationRecord>();
 
   for (const record of records) {
@@ -750,7 +831,10 @@ function getLatestWordRecords(records: ExplanationRecord[]): ExplanationRecord[]
     if (!WORD_PATTERN.test(word)) continue;
     const key = word.toLowerCase();
     const existing = byWord.get(key);
-    if (!existing || Date.parse(record.createdAt) > Date.parse(existing.createdAt)) {
+    if (
+      !existing ||
+      Date.parse(record.createdAt) > Date.parse(existing.createdAt)
+    ) {
       byWord.set(key, record);
     }
   }
@@ -772,7 +856,10 @@ function findWordMatchOffsets(source: string, word: string): number[] {
     if (!isAsciiWordChar(before) && !isAsciiWordChar(after)) {
       offsets.push(index);
     }
-    index = normalizedSource.indexOf(normalizedWord, index + Math.max(1, normalizedWord.length));
+    index = normalizedSource.indexOf(
+      normalizedWord,
+      index + Math.max(1, normalizedWord.length),
+    );
   }
 
   return offsets;
@@ -790,13 +877,10 @@ function wrapLookupRange(range: Range, record: ExplanationRecord): void {
   wrapper.dataset.remarkerExplanationId = record.id;
   wrapper.style.background = "transparent";
   wrapper.style.borderBottom = `2px solid ${LOOKUP_UNDERLINE_COLOR}`;
-  wrapper.style.borderRadius = "2px";
   wrapper.style.cursor = "help";
-  wrapper.style.paddingBottom = "1px";
-  wrapper.style.textDecoration = `underline solid ${LOOKUP_UNDERLINE_COLOR}`;
-  wrapper.style.textDecorationThickness = "2px";
-  wrapper.style.textUnderlineOffset = "3px";
-  wrapper.addEventListener("mouseenter", () => showLookupExplanationPanel(wrapper, record));
+  wrapper.addEventListener("mouseenter", () =>
+    showLookupExplanationPanel(wrapper, record),
+  );
   wrapper.addEventListener("mouseleave", scheduleLookupPanelHide);
   wrapper.addEventListener("mousedown", (event) => {
     event.stopPropagation();
@@ -827,7 +911,7 @@ function createTextAnchor(range: Range): TextAnchor {
     prefixText: fullText.slice(Math.max(0, textStart - 80), textStart),
     suffixText: fullText.slice(textEnd, textEnd + 80),
     textStart,
-    textEnd
+    textEnd,
   };
 }
 
@@ -835,23 +919,38 @@ function findRangesForAnchor(anchor: TextAnchor): Range[] {
   return findRangeMatchesForAnchor(anchor).map((match) => match.range);
 }
 
-function findRangeMatchesForAnchor(anchor: TextAnchor, snapshot = getAnchorTextSnapshot()): RangeMatch[] {
+function findRangeMatchesForAnchor(
+  anchor: TextAnchor,
+  snapshot = getAnchorTextSnapshot(),
+): RangeMatch[] {
   const fullText = snapshot.text;
   const candidates: number[] = [];
   let index = fullText.indexOf(anchor.selectedText);
 
   while (index !== -1) {
-    const prefix = fullText.slice(Math.max(0, index - anchor.prefixText.length), index);
-    const suffix = fullText.slice(index + anchor.selectedText.length, index + anchor.selectedText.length + anchor.suffixText.length);
+    const prefix = fullText.slice(
+      Math.max(0, index - anchor.prefixText.length),
+      index,
+    );
+    const suffix = fullText.slice(
+      index + anchor.selectedText.length,
+      index + anchor.selectedText.length + anchor.suffixText.length,
+    );
     const hasPrefix = anchor.prefixText ? prefix === anchor.prefixText : true;
     const hasSuffix = anchor.suffixText ? suffix === anchor.suffixText : true;
     if (hasPrefix || hasSuffix) {
       candidates.push(index);
     }
-    index = fullText.indexOf(anchor.selectedText, index + Math.max(1, anchor.selectedText.length));
+    index = fullText.indexOf(
+      anchor.selectedText,
+      index + Math.max(1, anchor.selectedText.length),
+    );
   }
 
-  if (candidates.length === 0 && fullText.slice(anchor.textStart, anchor.textEnd) === anchor.selectedText) {
+  if (
+    candidates.length === 0 &&
+    fullText.slice(anchor.textStart, anchor.textEnd) === anchor.selectedText
+  ) {
     candidates.push(anchor.textStart);
   }
 
@@ -864,8 +963,13 @@ function findRangeMatchesForAnchor(anchor: TextAnchor, snapshot = getAnchorTextS
 
   return candidates
     .map((start) => {
-      const range = createRangeFromTextOffsets(start, start + anchor.selectedText.length, snapshot);
-      if (!range || range.collapsed || range.toString() !== anchor.selectedText) return undefined;
+      const range = createRangeFromTextOffsets(
+        start,
+        start + anchor.selectedText.length,
+        snapshot,
+      );
+      if (!range || range.collapsed || range.toString() !== anchor.selectedText)
+        return undefined;
       return { range, start };
     })
     .filter(isRangeMatch);
@@ -881,7 +985,11 @@ function findAllTextMatches(source: string, target: string): number[] {
   return matches;
 }
 
-function createRangeFromTextOffsets(start: number, end: number, snapshot = getAnchorTextSnapshot()): Range | undefined {
+function createRangeFromTextOffsets(
+  start: number,
+  end: number,
+  snapshot = getAnchorTextSnapshot(),
+): Range | undefined {
   const textNodes = snapshot.nodes;
   let position = 0;
   let startNode: Text | undefined;
@@ -939,24 +1047,37 @@ function wrapRange(range: Range, color: HighlightColor, id: string): void {
   }
 }
 
-function renderExistingHighlightToolbar(element: HTMLElement, id: string): void {
+function renderExistingHighlightToolbar(
+  element: HTMLElement,
+  id: string,
+): void {
   panelPinned = false;
   toolbarPinned = true;
   clearTransientTimer();
   toolbar.className = "toolbar";
   toolbar.replaceChildren();
-  toolbar.append(createIconButton("copy", t.copy, () => navigator.clipboard.writeText(element.innerText)));
-  toolbar.append(createIconButton("trash", t.delete, async () => {
-    element.replaceWith(document.createTextNode(element.innerText));
-    await sendMessage({ type: "DELETE_HIGHLIGHT", id });
-    hideToolbar();
-  }));
+  toolbar.append(
+    createIconButton("copy", t.copy, () =>
+      navigator.clipboard.writeText(element.innerText),
+    ),
+  );
+  toolbar.append(
+    createIconButton("trash", t.delete, async () => {
+      element.replaceWith(document.createTextNode(element.innerText));
+      await sendMessage({ type: "DELETE_HIGHLIGHT", id });
+      hideToolbar();
+    }),
+  );
 
   for (const color of Object.keys(HIGHLIGHT_COLORS) as HighlightColor[]) {
-    const button = createIconButton("circle", interpolate(t.changeToColor, { color }), async () => {
-      element.style.background = HIGHLIGHT_COLORS[color];
-      await sendMessage({ type: "UPDATE_HIGHLIGHT_COLOR", id, color });
-    });
+    const button = createIconButton(
+      "circle",
+      interpolate(t.changeToColor, { color }),
+      async () => {
+        element.style.background = HIGHLIGHT_COLORS[color];
+        await sendMessage({ type: "UPDATE_HIGHLIGHT_COLOR", id, color });
+      },
+    );
     button.className = "color";
     button.title = color;
     button.style.background = HIGHLIGHT_COLORS[color];
@@ -973,12 +1094,21 @@ function getContextForRange(range: Range): string {
 }
 
 function getBlockElement(node: Node): HTMLElement | null {
-  const element = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
-  return element?.closest("p, li, blockquote, pre, code, article, section, div") as HTMLElement | null;
+  const element =
+    node.nodeType === Node.ELEMENT_NODE
+      ? (node as Element)
+      : node.parentElement;
+  return element?.closest(
+    "p, li, blockquote, pre, code, article, section, div",
+  ) as HTMLElement | null;
 }
 
 function getIntersectingBlocks(range: Range): HTMLElement[] {
-  const blocks = Array.from(document.querySelectorAll<HTMLElement>("p, li, blockquote, pre, article section, article div"));
+  const blocks = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      "p, li, blockquote, pre, article section, article div",
+    ),
+  );
   return blocks.filter((block) => {
     try {
       return range.intersectsNode(block) && block.innerText.trim();
@@ -989,11 +1119,17 @@ function getIntersectingBlocks(range: Range): HTMLElement[] {
 }
 
 function getRangeRect(range: Range): DOMRect | undefined {
-  const rects = Array.from(range.getClientRects()).filter((rect) => rect.width > 0 && rect.height > 0);
+  const rects = Array.from(range.getClientRects()).filter(
+    (rect) => rect.width > 0 && rect.height > 0,
+  );
   return rects[0] ?? undefined;
 }
 
-function positionAboveSelection(element: HTMLElement, rect: DOMRect, gap: number): void {
+function positionAboveSelection(
+  element: HTMLElement,
+  rect: DOMRect,
+  gap: number,
+): void {
   const top = Math.max(8, rect.top - element.offsetHeight - gap);
   const left = Math.min(window.innerWidth - 16, Math.max(8, rect.left));
   element.style.top = `${top}px`;
@@ -1007,7 +1143,10 @@ function positionPanel(selectionRect: DOMRect): void {
 
   const height = panel.offsetHeight || 160;
   const topAbove = selectionRect.top - height - 10;
-  const top = topAbove >= 8 ? topAbove : Math.min(window.innerHeight - height - 8, selectionRect.bottom + 10);
+  const top =
+    topAbove >= 8
+      ? topAbove
+      : Math.min(window.innerHeight - height - 8, selectionRect.bottom + 10);
   panel.style.top = `${Math.max(8, top)}px`;
 }
 
@@ -1037,7 +1176,10 @@ function showStatusPanel(text: string, isError: boolean): void {
   positionPanel(currentSelection.rect);
 }
 
-function showExplanationPanel(text: string, options: { isLoading: boolean }): void {
+function showExplanationPanel(
+  text: string,
+  options: { isLoading: boolean },
+): void {
   if (!currentSelection) return;
   panelPinned = true;
   toolbar.classList.remove("visible");
@@ -1053,27 +1195,37 @@ function showExplanationPanel(text: string, options: { isLoading: boolean }): vo
   actions.style.marginTop = "0";
 
   if (!options.isLoading) {
-    const refreshButton = createIconButton("refresh", t.regenerate, () => explainCurrentSelection(true));
+    const refreshButton = createIconButton("refresh", t.regenerate, () =>
+      explainCurrentSelection(true),
+    );
     actions.append(refreshButton);
 
     if (currentSelection.isWord) {
-      const saveWordButton = createIconButton("book-plus", t.saveWord, async () => {
-        await createVocabularyRecord(text);
-        showButtonSuccess(saveWordButton, "book-plus");
-      });
+      const saveWordButton = createIconButton(
+        "book-plus",
+        t.saveWord,
+        async () => {
+          await createVocabularyRecord(text);
+          showButtonSuccess(saveWordButton, "book-plus");
+        },
+      );
       actions.append(saveWordButton);
     }
 
-    const copyExplanationButton = createIconButton("copy", t.copyExplanation, async () => {
-      await navigator.clipboard.writeText(text);
-      showButtonSuccess(copyExplanationButton, "copy");
-      if (autoCloseLookupPanelOnCopy) {
-        window.setTimeout(() => {
-          panelPinned = false;
-          hideToolbar();
-        }, 180);
-      }
-    });
+    const copyExplanationButton = createIconButton(
+      "copy",
+      t.copyExplanation,
+      async () => {
+        await navigator.clipboard.writeText(text);
+        showButtonSuccess(copyExplanationButton, "copy");
+        if (autoCloseLookupPanelOnCopy) {
+          window.setTimeout(() => {
+            panelPinned = false;
+            hideToolbar();
+          }, 180);
+        }
+      },
+    );
     actions.append(copyExplanationButton);
   }
 
@@ -1110,7 +1262,10 @@ function createLoadingSkeleton(): HTMLElement {
   return container;
 }
 
-function showLookupExplanationPanel(anchor: HTMLElement, record: ExplanationRecord): void {
+function showLookupExplanationPanel(
+  anchor: HTMLElement,
+  record: ExplanationRecord,
+): void {
   if (lookupPanelTimer !== undefined) {
     window.clearTimeout(lookupPanelTimer);
     lookupPanelTimer = undefined;
@@ -1141,7 +1296,9 @@ function showLookupExplanationPanel(anchor: HTMLElement, record: ExplanationReco
   body.innerHTML = markdownToSafeHtml(record.result);
   panel.append(header, body);
 
-  panel.addEventListener("mouseenter", clearLookupPanelHideTimer, { once: true });
+  panel.addEventListener("mouseenter", clearLookupPanelHideTimer, {
+    once: true,
+  });
   panel.addEventListener("mouseleave", scheduleLookupPanelHide, { once: true });
   positionPanel(anchor.getBoundingClientRect());
 }
@@ -1179,7 +1336,10 @@ function hideToolbar(): void {
 function handleDocumentMouseDown(event: MouseEvent): void {
   const target = event.composedPath()[0];
   if (target instanceof Node && shadowRoot.contains(target)) return;
-  if (target instanceof HTMLElement && target.closest(`.${HIGHLIGHT_CLASS}, .${LOOKUP_CLASS}`)) {
+  if (
+    target instanceof HTMLElement &&
+    target.closest(`.${HIGHLIGHT_CLASS}, .${LOOKUP_CLASS}`)
+  ) {
     suppressSelectionChange();
     return;
   }
@@ -1208,7 +1368,10 @@ function clearTransientTimer(): void {
   }
 }
 
-function showButtonSuccess(button: HTMLButtonElement, restoreIcon: IconName): void {
+function showButtonSuccess(
+  button: HTMLButtonElement,
+  restoreIcon: IconName,
+): void {
   const previousTitle = button.title;
   button.innerHTML = ICONS.check;
   button.title = t.copied;
@@ -1227,13 +1390,18 @@ function getDocumentText(): string {
 }
 
 function getAnchorTextSnapshot(): TextSnapshot {
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      if (!node.textContent) return NodeFilter.FILTER_REJECT;
-      if (node.parentElement?.closest(`#remarker-root, .${HIGHLIGHT_CLASS}`)) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
-    }
-  });
+  const walker = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode(node) {
+        if (!node.textContent) return NodeFilter.FILTER_REJECT;
+        if (node.parentElement?.closest(`#remarker-root, .${HIGHLIGHT_CLASS}`))
+          return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    },
+  );
 
   const nodes: Text[] = [];
   while (walker.nextNode()) {
@@ -1241,11 +1409,14 @@ function getAnchorTextSnapshot(): TextSnapshot {
   }
   return {
     nodes,
-    text: nodes.map((node) => node.data).join("")
+    text: nodes.map((node) => node.data).join(""),
   };
 }
 
-function getTextOffsetsForRange(range: Range, snapshot = getAnchorTextSnapshot()): { start: number; end: number } | undefined {
+function getTextOffsetsForRange(
+  range: Range,
+  snapshot = getAnchorTextSnapshot(),
+): { start: number; end: number } | undefined {
   const textNodes = snapshot.nodes;
   let position = 0;
   let start: number | undefined;
@@ -1263,11 +1434,18 @@ function getTextOffsetsForRange(range: Range, snapshot = getAnchorTextSnapshot()
       break;
     }
 
-    if (range.startContainer.nodeType === Node.ELEMENT_NODE && range.startContainer.contains(node) && start === undefined) {
+    if (
+      range.startContainer.nodeType === Node.ELEMENT_NODE &&
+      range.startContainer.contains(node) &&
+      start === undefined
+    ) {
       start = position;
     }
 
-    if (range.endContainer.nodeType === Node.ELEMENT_NODE && range.endContainer.contains(node)) {
+    if (
+      range.endContainer.nodeType === Node.ELEMENT_NODE &&
+      range.endContainer.contains(node)
+    ) {
       end = nextPosition;
     }
 
@@ -1289,10 +1467,13 @@ function normalizeUrlKey(input: string): string {
 }
 
 function sendMessage<T>(message: unknown): Promise<T> {
-  return chrome.runtime.sendMessage(message).then((response: RuntimeResponse<T>) => {
-    if (!response?.ok) throw new Error(response?.error ?? "Extension request failed.");
-    return response.result as T;
-  });
+  return chrome.runtime
+    .sendMessage(message)
+    .then((response: RuntimeResponse<T>) => {
+      if (!response?.ok)
+        throw new Error(response?.error ?? "Extension request failed.");
+      return response.result as T;
+    });
 }
 
 function debounce(fn: () => void, delay: number): () => void {
@@ -1315,19 +1496,27 @@ function formatError(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown error";
 }
 
-function findExistingHighlightElementForRange(range: Range): HTMLElement | undefined {
-  const startElement = range.startContainer.nodeType === Node.ELEMENT_NODE
-    ? (range.startContainer as Element)
-    : range.startContainer.parentElement;
-  const endElement = range.endContainer.nodeType === Node.ELEMENT_NODE
-    ? (range.endContainer as Element)
-    : range.endContainer.parentElement;
+function findExistingHighlightElementForRange(
+  range: Range,
+): HTMLElement | undefined {
+  const startElement =
+    range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? (range.startContainer as Element)
+      : range.startContainer.parentElement;
+  const endElement =
+    range.endContainer.nodeType === Node.ELEMENT_NODE
+      ? (range.endContainer as Element)
+      : range.endContainer.parentElement;
 
-  const startHighlight = startElement?.closest<HTMLElement>(`.${HIGHLIGHT_CLASS}`);
+  const startHighlight = startElement?.closest<HTMLElement>(
+    `.${HIGHLIGHT_CLASS}`,
+  );
   const endHighlight = endElement?.closest<HTMLElement>(`.${HIGHLIGHT_CLASS}`);
   if (startHighlight && startHighlight === endHighlight) return startHighlight;
 
-  const highlights = Array.from(document.querySelectorAll<HTMLElement>(`.${HIGHLIGHT_CLASS}`));
+  const highlights = Array.from(
+    document.querySelectorAll<HTMLElement>(`.${HIGHLIGHT_CLASS}`),
+  );
   return highlights.find((highlight) => {
     try {
       return range.intersectsNode(highlight);
@@ -1338,14 +1527,17 @@ function findExistingHighlightElementForRange(range: Range): HTMLElement | undef
 }
 
 function rangeIntersectsSelector(range: Range, selector: string): boolean {
-  const startElement = range.startContainer.nodeType === Node.ELEMENT_NODE
-    ? (range.startContainer as Element)
-    : range.startContainer.parentElement;
-  const endElement = range.endContainer.nodeType === Node.ELEMENT_NODE
-    ? (range.endContainer as Element)
-    : range.endContainer.parentElement;
+  const startElement =
+    range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? (range.startContainer as Element)
+      : range.startContainer.parentElement;
+  const endElement =
+    range.endContainer.nodeType === Node.ELEMENT_NODE
+      ? (range.endContainer as Element)
+      : range.endContainer.parentElement;
 
-  if (startElement?.closest(selector) || endElement?.closest(selector)) return true;
+  if (startElement?.closest(selector) || endElement?.closest(selector))
+    return true;
 
   return Array.from(document.querySelectorAll(selector)).some((element) => {
     try {
@@ -1376,7 +1568,9 @@ function markdownToSafeHtml(markdown: string): string {
 
     if (line.startsWith("```")) {
       if (inCodeBlock) {
-        html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+        html.push(
+          `<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`,
+        );
         codeLines = [];
         inCodeBlock = false;
       } else {
@@ -1441,7 +1635,10 @@ function markdownToSafeHtml(markdown: string): string {
   return html.join("");
 }
 
-function renderTable(lines: string[], startIndex: number): { html: string; nextIndex: number } {
+function renderTable(
+  lines: string[],
+  startIndex: number,
+): { html: string; nextIndex: number } {
   const headerCells = splitTableRow(lines[startIndex]);
   const bodyRows: string[][] = [];
   let index = startIndex + 2;
@@ -1451,19 +1648,26 @@ function renderTable(lines: string[], startIndex: number): { html: string; nextI
     index += 1;
   }
 
-  const header = headerCells.map((cell) => `<th>${renderInlineMarkdown(cell)}</th>`).join("");
+  const header = headerCells
+    .map((cell) => `<th>${renderInlineMarkdown(cell)}</th>`)
+    .join("");
   const body = bodyRows
-    .map((row) => `<tr>${row.map((cell) => `<td>${renderInlineMarkdown(cell)}</td>`).join("")}</tr>`)
+    .map(
+      (row) =>
+        `<tr>${row.map((cell) => `<td>${renderInlineMarkdown(cell)}</td>`).join("")}</tr>`,
+    )
     .join("");
 
   return {
     html: `<table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`,
-    nextIndex: index
+    nextIndex: index,
   };
 }
 
 function isMarkdownTableStart(lines: string[], index: number): boolean {
-  return isTableRow(lines[index]) && isTableDelimiterLine(lines[index + 1] ?? "");
+  return (
+    isTableRow(lines[index]) && isTableDelimiterLine(lines[index + 1] ?? "")
+  );
 }
 
 function isTableRow(line: string): boolean {
@@ -1472,7 +1676,9 @@ function isTableRow(line: string): boolean {
 
 function isTableDelimiterLine(line: string): boolean {
   const cells = splitTableRow(line);
-  return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell.trim()));
+  return (
+    cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell.trim()))
+  );
 }
 
 function splitTableRow(line: string): string[] {
@@ -1487,7 +1693,7 @@ function renderInlineMarkdown(value: string): string {
   html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   html = html.replace(
     /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
-    '<a href="$2" target="_blank" rel="noreferrer">$1</a>'
+    '<a href="$2" target="_blank" rel="noreferrer">$1</a>',
   );
   return html;
 }
@@ -1501,17 +1707,33 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-type IconName = "book-plus" | "check" | "circle" | "copy" | "highlighter" | "refresh" | "sparkles" | "trash" | "volume" | "x";
+type IconName =
+  | "book-plus"
+  | "check"
+  | "circle"
+  | "copy"
+  | "highlighter"
+  | "refresh"
+  | "sparkles"
+  | "trash"
+  | "volume"
+  | "x";
 
 const ICONS: Record<IconName, string> = {
-  "book-plus": '<svg viewBox="0 0 24 24"><path d="M12 7v6"/><path d="M9 10h6"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg>',
+  "book-plus":
+    '<svg viewBox="0 0 24 24"><path d="M12 7v6"/><path d="M9 10h6"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
   circle: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>',
   copy: '<svg viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
-  highlighter: '<svg viewBox="0 0 24 24"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>',
-  refresh: '<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M16 8h5V3"/></svg>',
-  sparkles: '<svg viewBox="0 0 24 24"><path d="M9.9 2.8 8.7 7l-4.2 1.2 4.2 1.2 1.2 4.2 1.2-4.2 4.2-1.2L11.1 7z"/><path d="M18.5 12.5 17.8 15l-2.5.7 2.5.7.7 2.5.7-2.5 2.5-.7-2.5-.7z"/></svg>',
-  trash: '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
-  volume: '<svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>',
-  x: '<svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>'
+  highlighter:
+    '<svg viewBox="0 0 24 24"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>',
+  refresh:
+    '<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M16 8h5V3"/></svg>',
+  sparkles:
+    '<svg viewBox="0 0 24 24"><path d="M9.9 2.8 8.7 7l-4.2 1.2 4.2 1.2 1.2 4.2 1.2-4.2 4.2-1.2L11.1 7z"/><path d="M18.5 12.5 17.8 15l-2.5.7 2.5.7.7 2.5.7-2.5 2.5-.7-2.5-.7z"/></svg>',
+  trash:
+    '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
+  volume:
+    '<svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>',
+  x: '<svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
 };
