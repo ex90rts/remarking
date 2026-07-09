@@ -46,7 +46,7 @@ export const en = {
     tabs: {
       highlights: "Highlights",
       vocabulary: "Vocabulary",
-      explanations: "Explanations",
+      explanations: "Lookup Records",
       settings: "Settings"
     },
     columns: {
@@ -73,13 +73,14 @@ export const en = {
       exportJson: "Export JSON",
       exportMarkdown: "Export Markdown",
       importJson: "Import JSON",
-      saveSettings: "Save settings"
+      saveSettings: "Save settings",
+      restoreDefault: "Restore default"
     },
     confirmations: {
       deleteHighlight: "Delete this highlight?",
       deleteVocabularyItem: "Delete this vocabulary item?",
-      deleteExplanation: "Delete this explanation?",
-      clearExplanations: "Clear all cached explanations?"
+      deleteExplanation: "Delete this lookup record?",
+      clearExplanations: "Clear all lookup records?"
     },
     settings: {
       llm: "LLM",
@@ -90,11 +91,13 @@ export const en = {
       timeoutMs: "Timeout ms",
       promptTemplate: "Prompt template",
       promptTemplateHelp: "Available variables: {{task}}, {{selection}}, {{context}}",
+      behavior: "Behavior",
+      autoCloseLookupPanelOnCopy: "Automatically close lookup popup after copying",
       language: "Language",
       pronunciation: "Pronunciation",
       merriamWebsterApiKey: "Merriam-Webster API Key",
       preferences: "Preferences",
-      enableExtensionGlobally: "Enable extension globally",
+      enableExtensionGlobally: "Enable page highlighting globally",
       defaultHighlightColor: "Default highlight color",
       disabledSites: "Disabled sites",
       disabledSitesHelp: "One hostname per line, for example: example.com",
@@ -112,7 +115,7 @@ export const en = {
       pending: "This highlight has not been restored on a source page yet."
     },
     export: {
-      explanationsTitle: "Explanations",
+      explanationsTitle: "Lookup Records",
       exported: "Exported",
       source: "Source",
       model: "Model",

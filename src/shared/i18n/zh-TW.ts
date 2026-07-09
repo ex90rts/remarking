@@ -48,7 +48,7 @@ export const zhTW: Messages = {
     tabs: {
       highlights: "標記",
       vocabulary: "生字表",
-      explanations: "解釋記錄",
+      explanations: "查詞記錄",
       settings: "設定"
     },
     columns: {
@@ -75,13 +75,14 @@ export const zhTW: Messages = {
       exportJson: "匯出 JSON",
       exportMarkdown: "匯出 Markdown",
       importJson: "匯入 JSON",
-      saveSettings: "儲存設定"
+      saveSettings: "儲存設定",
+      restoreDefault: "恢復預設"
     },
     confirmations: {
       deleteHighlight: "刪除這條標記？",
       deleteVocabularyItem: "刪除這個生字？",
-      deleteExplanation: "刪除這條解釋？",
-      clearExplanations: "清除所有解釋快取？"
+      deleteExplanation: "刪除這條查詞記錄？",
+      clearExplanations: "清除所有查詞記錄？"
     },
     settings: {
       llm: "大型語言模型",
@@ -92,11 +93,13 @@ export const zhTW: Messages = {
       timeoutMs: "逾時時間 ms",
       promptTemplate: "提示詞模板",
       promptTemplateHelp: "可用變數：{{task}}、{{selection}}、{{context}}",
+      behavior: "行為",
+      autoCloseLookupPanelOnCopy: "查詞彈窗複製後自動關閉",
       language: "語言",
       pronunciation: "發音",
       merriamWebsterApiKey: "Merriam-Webster API Key",
       preferences: "偏好",
-      enableExtensionGlobally: "全域啟用外掛",
+      enableExtensionGlobally: "啟用全域頁面標記",
       defaultHighlightColor: "預設標記顏色",
       disabledSites: "停用站點",
       disabledSitesHelp: "每行一個 hostname，例如：example.com",
@@ -114,7 +117,7 @@ export const zhTW: Messages = {
       pending: "這條標記尚未在來源頁面完成恢復確認。"
     },
     export: {
-      explanationsTitle: "解釋記錄",
+      explanationsTitle: "查詞記錄",
       exported: "匯出時間",
       source: "來源",
       model: "模型",

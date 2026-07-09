@@ -6,7 +6,7 @@ import type {
   VocabularyRecord
 } from "../types";
 import { detectBrowserLanguage } from "../i18n";
-import { DEFAULT_SETTINGS, SCHEMA_VERSION } from "../types";
+import { DEFAULT_SETTINGS, SCHEMA_VERSION, getDefaultPromptTemplate } from "../types";
 
 const DB_NAME = "remarker";
 
@@ -134,12 +134,18 @@ export async function importSnapshot(snapshot: {
 }
 
 function normalizeSettings(settings: AppSettings | undefined): AppSettings {
+  const language = settings?.ui?.language ?? detectBrowserLanguage();
+
   return {
-    llm: { ...DEFAULT_SETTINGS.llm, ...(settings?.llm ?? {}) },
+    llm: {
+      ...DEFAULT_SETTINGS.llm,
+      promptTemplate: getDefaultPromptTemplate(language),
+      ...(settings?.llm ?? {})
+    },
     pronunciation: { ...DEFAULT_SETTINGS.pronunciation, ...(settings?.pronunciation ?? {}) },
     ui: {
       ...DEFAULT_SETTINGS.ui,
-      language: detectBrowserLanguage(),
+      language,
       ...(settings?.ui ?? {})
     }
   };

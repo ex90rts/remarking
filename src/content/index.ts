@@ -49,6 +49,15 @@ interface RangeMatch {
   start: number;
 }
 
+interface ExplanationRecord {
+  id: string;
+  selectionKind?: "word" | "text";
+  selectedText: string;
+  sourceUrl: string;
+  result: string;
+  createdAt: string;
+}
+
 interface ContentMessages {
   copy: string;
   speak: string;
@@ -170,6 +179,8 @@ const CONTENT_MESSAGES: Record<SupportedLanguage, ContentMessages> = {
 
 const WORD_PATTERN = /^[A-Za-z]+(?:[-'][A-Za-z]+)*$/;
 const HIGHLIGHT_CLASS = "remarker-highlight";
+const LOOKUP_CLASS = "remarker-lookup";
+const LOOKUP_UNDERLINE_COLOR = "#f97316";
 const HIGHLIGHT_COLORS: Record<HighlightColor, string> = {
   yellow: "#ffe66d",
   green: "#b7f7c2",
@@ -187,8 +198,10 @@ let panelPinned = false;
 let toolbarPinned = false;
 let suppressSelectionChangeUntil = 0;
 let transientTimer: number | undefined;
+let lookupPanelTimer: number | undefined;
 let currentExplanationMarkdown: string | undefined;
 let t: ContentMessages = getContentMessages(detectBrowserLanguage());
+let autoCloseLookupPanelOnCopy = false;
 
 init().catch((error) => {
   console.warn("[Remarker] init failed", error);
@@ -200,14 +213,16 @@ async function init(): Promise<void> {
   await loadMessages();
   createOverlay();
   await restoreHighlights();
+  await restoreLookupExplanations();
 
   document.addEventListener("selectionchange", debounce(handleSelectionChange, 120));
   document.addEventListener("mousedown", handleDocumentMouseDown, true);
 }
 
 async function loadMessages(): Promise<void> {
-  const settings = await sendMessage<{ ui: { language: SupportedLanguage } }>({ type: "GET_SETTINGS" }).catch(() => undefined);
+  const settings = await sendMessage<{ ui: { language: SupportedLanguage; autoCloseLookupPanelOnCopy?: boolean } }>({ type: "GET_SETTINGS" }).catch(() => undefined);
   t = getContentMessages(settings?.ui.language ?? detectBrowserLanguage());
+  autoCloseLookupPanelOnCopy = Boolean(settings?.ui.autoCloseLookupPanelOnCopy);
 }
 
 function getContentMessages(language: SupportedLanguage): ContentMessages {
@@ -296,6 +311,25 @@ function createOverlay(): void {
       max-height: 292px;
       overflow: auto;
       padding-right: 4px;
+    }
+    .skeleton-stack {
+      display: grid;
+      gap: 9px;
+      padding: 2px 0 4px;
+    }
+    .skeleton-line {
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #eef2f7 0%, #dbe4ef 50%, #eef2f7 100%);
+      background-size: 220% 100%;
+      animation: remarker-skeleton 1.2s ease-in-out infinite;
+    }
+    .skeleton-line.short { width: 54%; }
+    .skeleton-line.medium { width: 76%; }
+    .skeleton-line.long { width: 94%; }
+    @keyframes remarker-skeleton {
+      0% { background-position: 120% 0; }
+      100% { background-position: -120% 0; }
     }
     .markdown-body p { margin: 0 0 8px; }
     .markdown-body h3, .markdown-body h4, .markdown-body h5 {
@@ -399,6 +433,21 @@ function createOverlay(): void {
       justify-content: center;
     }
     .muted { color: #64748b; }
+    .${LOOKUP_CLASS} {
+      background: transparent;
+      border-bottom: 2px solid ${LOOKUP_UNDERLINE_COLOR};
+      border-radius: 2px;
+      cursor: help;
+      padding-bottom: 1px;
+      text-decoration-line: underline;
+      text-decoration-style: solid;
+      text-decoration-color: ${LOOKUP_UNDERLINE_COLOR};
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+    }
+    .${LOOKUP_CLASS}:hover {
+      background: rgba(249, 115, 22, 0.08);
+    }
   `;
 
   toolbar = document.createElement("div");
@@ -518,7 +567,7 @@ async function explainCurrentSelection(forceRefresh: boolean): Promise<void> {
   suppressSelectionChange();
   currentExplanationMarkdown = undefined;
   showExplanationPanel(currentSelection.isWord ? t.explainingProgress : t.translatingProgress, { isLoading: true });
-  const explanation = await sendMessage<{ result: string }>({
+  const explanation = await sendMessage<ExplanationRecord>({
     type: "EXPLAIN_SELECTION",
     selectionKind: currentSelection.isWord ? "word" : "text",
     selectedText: currentSelection.text,
@@ -530,6 +579,9 @@ async function explainCurrentSelection(forceRefresh: boolean): Promise<void> {
 
   currentExplanationMarkdown = explanation.result;
   showExplanationPanel(explanation.result, { isLoading: false });
+  if (currentSelection.isWord) {
+    applyLookupMarkers([explanation]);
+  }
 }
 
 async function saveCurrentWord(): Promise<void> {
@@ -656,6 +708,108 @@ async function restoreHighlights(): Promise<void> {
     .forEach(({ record, match }) => {
       wrapRange(match.range, record.color, record.id);
     });
+}
+
+async function restoreLookupExplanations(): Promise<void> {
+  const records = await sendMessage<ExplanationRecord[]>({
+    type: "GET_WORD_EXPLANATIONS_FOR_URL",
+    urlKey: currentUrlKey
+  });
+  applyLookupMarkers(records);
+}
+
+function applyLookupMarkers(records: ExplanationRecord[]): void {
+  const wordRecords = getLatestWordRecords(records);
+  if (wordRecords.length === 0) return;
+
+  const snapshot = getAnchorTextSnapshot();
+  const plan: Array<{ record: ExplanationRecord; range: Range; start: number }> = [];
+
+  for (const record of wordRecords) {
+    const word = record.selectedText.trim();
+    for (const start of findWordMatchOffsets(snapshot.text, word)) {
+      const range = createRangeFromTextOffsets(start, start + word.length, snapshot);
+      if (!range || range.collapsed) continue;
+      if (rangeIntersectsSelector(range, `.${LOOKUP_CLASS}`)) continue;
+      plan.push({ record, range, start });
+    }
+  }
+
+  plan
+    .sort((left, right) => right.start - left.start)
+    .forEach(({ record, range }) => {
+      wrapLookupRange(range, record);
+    });
+}
+
+function getLatestWordRecords(records: ExplanationRecord[]): ExplanationRecord[] {
+  const byWord = new Map<string, ExplanationRecord>();
+
+  for (const record of records) {
+    const word = record.selectedText.trim();
+    if (!WORD_PATTERN.test(word)) continue;
+    const key = word.toLowerCase();
+    const existing = byWord.get(key);
+    if (!existing || Date.parse(record.createdAt) > Date.parse(existing.createdAt)) {
+      byWord.set(key, record);
+    }
+  }
+
+  return [...byWord.values()];
+}
+
+function findWordMatchOffsets(source: string, word: string): number[] {
+  const trimmedWord = word.trim();
+  const normalizedSource = source.toLowerCase();
+  const normalizedWord = trimmedWord.toLowerCase();
+  const offsets: number[] = [];
+  if (!normalizedWord) return offsets;
+  let index = normalizedSource.indexOf(normalizedWord);
+
+  while (index !== -1) {
+    const before = source[index - 1] ?? "";
+    const after = source[index + trimmedWord.length] ?? "";
+    if (!isAsciiWordChar(before) && !isAsciiWordChar(after)) {
+      offsets.push(index);
+    }
+    index = normalizedSource.indexOf(normalizedWord, index + Math.max(1, normalizedWord.length));
+  }
+
+  return offsets;
+}
+
+function isAsciiWordChar(value: string): boolean {
+  return /^[A-Za-z]$/.test(value);
+}
+
+function wrapLookupRange(range: Range, record: ExplanationRecord): void {
+  if (rangeIntersectsSelector(range, `.${LOOKUP_CLASS}`)) return;
+
+  const wrapper = document.createElement("span");
+  wrapper.className = LOOKUP_CLASS;
+  wrapper.dataset.remarkerExplanationId = record.id;
+  wrapper.style.background = "transparent";
+  wrapper.style.borderBottom = `2px solid ${LOOKUP_UNDERLINE_COLOR}`;
+  wrapper.style.borderRadius = "2px";
+  wrapper.style.cursor = "help";
+  wrapper.style.paddingBottom = "1px";
+  wrapper.style.textDecoration = `underline solid ${LOOKUP_UNDERLINE_COLOR}`;
+  wrapper.style.textDecorationThickness = "2px";
+  wrapper.style.textUnderlineOffset = "3px";
+  wrapper.addEventListener("mouseenter", () => showLookupExplanationPanel(wrapper, record));
+  wrapper.addEventListener("mouseleave", scheduleLookupPanelHide);
+  wrapper.addEventListener("mousedown", (event) => {
+    event.stopPropagation();
+    suppressSelectionChange();
+  });
+
+  try {
+    range.surroundContents(wrapper);
+  } catch {
+    const fragment = range.extractContents();
+    wrapper.append(fragment);
+    range.insertNode(wrapper);
+  }
 }
 
 function createTextAnchor(range: Range): TextAnchor {
@@ -913,6 +1067,12 @@ function showExplanationPanel(text: string, options: { isLoading: boolean }): vo
     const copyExplanationButton = createIconButton("copy", t.copyExplanation, async () => {
       await navigator.clipboard.writeText(text);
       showButtonSuccess(copyExplanationButton, "copy");
+      if (autoCloseLookupPanelOnCopy) {
+        window.setTimeout(() => {
+          panelPinned = false;
+          hideToolbar();
+        }, 180);
+      }
     });
     actions.append(copyExplanationButton);
   }
@@ -927,7 +1087,7 @@ function showExplanationPanel(text: string, options: { isLoading: boolean }): vo
   const body = document.createElement("div");
   body.className = "panel-body markdown-body";
   if (options.isLoading) {
-    body.textContent = text;
+    body.append(createLoadingSkeleton());
   } else {
     body.innerHTML = markdownToSafeHtml(text);
   }
@@ -935,6 +1095,70 @@ function showExplanationPanel(text: string, options: { isLoading: boolean }): vo
   panel.append(header, body);
 
   positionPanel(currentSelection.rect);
+}
+
+function createLoadingSkeleton(): HTMLElement {
+  const container = document.createElement("div");
+  container.className = "skeleton-stack";
+
+  for (const className of ["long", "medium", "long", "short"]) {
+    const line = document.createElement("div");
+    line.className = `skeleton-line ${className}`;
+    container.append(line);
+  }
+
+  return container;
+}
+
+function showLookupExplanationPanel(anchor: HTMLElement, record: ExplanationRecord): void {
+  if (lookupPanelTimer !== undefined) {
+    window.clearTimeout(lookupPanelTimer);
+    lookupPanelTimer = undefined;
+  }
+
+  panelPinned = false;
+  toolbarPinned = false;
+  toolbar.classList.remove("visible");
+  panel.className = "panel visible";
+  panel.replaceChildren();
+
+  const header = document.createElement("div");
+  header.className = "panel-header";
+  const title = document.createElement("span");
+  title.textContent = record.selectedText;
+  const actions = document.createElement("div");
+  actions.className = "panel-actions";
+  actions.style.marginTop = "0";
+  const copyButton = createIconButton("copy", t.copyExplanation, async () => {
+    await navigator.clipboard.writeText(record.result);
+    showButtonSuccess(copyButton, "copy");
+  });
+  actions.append(copyButton);
+  header.append(title, actions);
+
+  const body = document.createElement("div");
+  body.className = "panel-body markdown-body";
+  body.innerHTML = markdownToSafeHtml(record.result);
+  panel.append(header, body);
+
+  panel.addEventListener("mouseenter", clearLookupPanelHideTimer, { once: true });
+  panel.addEventListener("mouseleave", scheduleLookupPanelHide, { once: true });
+  positionPanel(anchor.getBoundingClientRect());
+}
+
+function clearLookupPanelHideTimer(): void {
+  if (lookupPanelTimer !== undefined) {
+    window.clearTimeout(lookupPanelTimer);
+    lookupPanelTimer = undefined;
+  }
+}
+
+function scheduleLookupPanelHide(): void {
+  clearLookupPanelHideTimer();
+  lookupPanelTimer = window.setTimeout(() => {
+    panel.classList.remove("visible");
+    lookupPanelTimer = undefined;
+  }, 220);
 }
 
 function getExplanationPanelTitle(isLoading: boolean): string {
@@ -946,6 +1170,7 @@ function hideToolbar(): void {
   panelPinned = false;
   toolbarPinned = false;
   clearTransientTimer();
+  clearLookupPanelHideTimer();
   toolbar.classList.remove("visible");
   toolbar.classList.remove("success");
   panel.classList.remove("visible");
@@ -954,7 +1179,7 @@ function hideToolbar(): void {
 function handleDocumentMouseDown(event: MouseEvent): void {
   const target = event.composedPath()[0];
   if (target instanceof Node && shadowRoot.contains(target)) return;
-  if (target instanceof HTMLElement && target.closest(`.${HIGHLIGHT_CLASS}`)) {
+  if (target instanceof HTMLElement && target.closest(`.${HIGHLIGHT_CLASS}, .${LOOKUP_CLASS}`)) {
     suppressSelectionChange();
     return;
   }
@@ -1106,6 +1331,25 @@ function findExistingHighlightElementForRange(range: Range): HTMLElement | undef
   return highlights.find((highlight) => {
     try {
       return range.intersectsNode(highlight);
+    } catch {
+      return false;
+    }
+  });
+}
+
+function rangeIntersectsSelector(range: Range, selector: string): boolean {
+  const startElement = range.startContainer.nodeType === Node.ELEMENT_NODE
+    ? (range.startContainer as Element)
+    : range.startContainer.parentElement;
+  const endElement = range.endContainer.nodeType === Node.ELEMENT_NODE
+    ? (range.endContainer as Element)
+    : range.endContainer.parentElement;
+
+  if (startElement?.closest(selector) || endElement?.closest(selector)) return true;
+
+  return Array.from(document.querySelectorAll(selector)).some((element) => {
+    try {
+      return range.intersectsNode(element);
     } catch {
       return false;
     }

@@ -48,7 +48,7 @@ export const es: Messages = {
     tabs: {
       highlights: "Resaltados",
       vocabulary: "Vocabulario",
-      explanations: "Explicaciones",
+      explanations: "Registros de búsqueda",
       settings: "Ajustes"
     },
     columns: {
@@ -75,13 +75,14 @@ export const es: Messages = {
       exportJson: "Exportar JSON",
       exportMarkdown: "Exportar Markdown",
       importJson: "Importar JSON",
-      saveSettings: "Guardar ajustes"
+      saveSettings: "Guardar ajustes",
+      restoreDefault: "Restaurar valor predeterminado"
     },
     confirmations: {
       deleteHighlight: "¿Eliminar este resaltado?",
       deleteVocabularyItem: "¿Eliminar este elemento de vocabulario?",
-      deleteExplanation: "¿Eliminar esta explicación?",
-      clearExplanations: "¿Borrar todas las explicaciones en caché?"
+      deleteExplanation: "¿Eliminar este registro de búsqueda?",
+      clearExplanations: "¿Borrar todos los registros de búsqueda?"
     },
     settings: {
       llm: "LLM",
@@ -92,11 +93,13 @@ export const es: Messages = {
       timeoutMs: "Tiempo de espera ms",
       promptTemplate: "Plantilla de prompt",
       promptTemplateHelp: "Variables disponibles: {{task}}, {{selection}}, {{context}}",
+      behavior: "Comportamiento",
+      autoCloseLookupPanelOnCopy: "Cerrar automáticamente el popup de búsqueda después de copiar",
       language: "Idioma",
       pronunciation: "Pronunciación",
       merriamWebsterApiKey: "Merriam-Webster API Key",
       preferences: "Preferencias",
-      enableExtensionGlobally: "Activar extensión globalmente",
+      enableExtensionGlobally: "Activar resaltado de páginas globalmente",
       defaultHighlightColor: "Color de resaltado predeterminado",
       disabledSites: "Sitios desactivados",
       disabledSitesHelp: "Un hostname por línea, por ejemplo: example.com",
@@ -114,7 +117,7 @@ export const es: Messages = {
       pending: "Este resaltado aún no se ha confirmado en una página fuente."
     },
     export: {
-      explanationsTitle: "Explicaciones",
+      explanationsTitle: "Registros de búsqueda",
       exported: "Exportado",
       source: "Fuente",
       model: "Modelo",

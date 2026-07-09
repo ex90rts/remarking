@@ -1,5 +1,6 @@
 import { createExplanationCacheKey } from "../shared/cache-key";
 import type { RuntimeMessage, PronunciationResult } from "../shared/messages";
+import { normalizeUrlKey } from "../shared/url";
 import {
   clearStore,
   deleteFromStore,
@@ -41,6 +42,9 @@ async function handleMessage(message: RuntimeMessage): Promise<unknown> {
   switch (message.type) {
     case "GET_HIGHLIGHTS_FOR_URL":
       return getHighlightsForUrl(message.urlKey);
+
+    case "GET_WORD_EXPLANATIONS_FOR_URL":
+      return getWordExplanationsForUrl(message.urlKey);
 
     case "SAVE_HIGHLIGHT":
       await putInStore("highlights", message.record);
@@ -153,6 +157,7 @@ async function explainSelection(input: Extract<RuntimeMessage, { type: "EXPLAIN_
   const record: ExplanationRecord = {
     id: cached?.id ?? crypto.randomUUID(),
     cacheKey,
+    selectionKind: input.selectionKind,
     selectedText: input.selectedText,
     context: input.context,
     contextHash,
@@ -165,6 +170,27 @@ async function explainSelection(input: Extract<RuntimeMessage, { type: "EXPLAIN_
 
   await putInStore("explanations", record);
   return record;
+}
+
+async function getWordExplanationsForUrl(urlKey: string): Promise<ExplanationRecord[]> {
+  const records = await getAllFromStore<ExplanationRecord>("explanations");
+  return records.filter((record) => {
+    if (safeNormalizeUrlKey(record.sourceUrl) !== urlKey) return false;
+    if (record.selectionKind) return record.selectionKind === "word";
+    return isWordLikeSelection(record.selectedText);
+  });
+}
+
+function safeNormalizeUrlKey(sourceUrl: string): string {
+  try {
+    return normalizeUrlKey(sourceUrl);
+  } catch {
+    return "";
+  }
+}
+
+function isWordLikeSelection(value: string): boolean {
+  return /^[A-Za-z]+(?:[-'][A-Za-z]+)*$/.test(value.trim());
 }
 
 async function callOpenAiCompatibleApi(input: {

@@ -48,7 +48,7 @@ export const zhCN: Messages = {
     tabs: {
       highlights: "划线",
       vocabulary: "生词表",
-      explanations: "解释记录",
+      explanations: "查词记录",
       settings: "设置"
     },
     columns: {
@@ -75,13 +75,14 @@ export const zhCN: Messages = {
       exportJson: "导出 JSON",
       exportMarkdown: "导出 Markdown",
       importJson: "导入 JSON",
-      saveSettings: "保存设置"
+      saveSettings: "保存设置",
+      restoreDefault: "恢复默认"
     },
     confirmations: {
       deleteHighlight: "删除这条划线？",
       deleteVocabularyItem: "删除这个生词？",
-      deleteExplanation: "删除这条解释？",
-      clearExplanations: "清空所有解释缓存？"
+      deleteExplanation: "删除这条查词记录？",
+      clearExplanations: "清空所有查词记录？"
     },
     settings: {
       llm: "大模型",
@@ -92,11 +93,13 @@ export const zhCN: Messages = {
       timeoutMs: "超时时间 ms",
       promptTemplate: "提示词模板",
       promptTemplateHelp: "可用变量：{{task}}、{{selection}}、{{context}}",
+      behavior: "行为",
+      autoCloseLookupPanelOnCopy: "查词弹窗复制后自动关闭",
       language: "语言",
       pronunciation: "发音",
       merriamWebsterApiKey: "Merriam-Webster API Key",
       preferences: "偏好",
-      enableExtensionGlobally: "全局启用插件",
+      enableExtensionGlobally: "启用全局页面划线",
       defaultHighlightColor: "默认划线颜色",
       disabledSites: "停用站点",
       disabledSitesHelp: "每行一个 hostname，例如：example.com",
@@ -114,7 +117,7 @@ export const zhCN: Messages = {
       pending: "这条划线尚未在来源页面完成恢复确认。"
     },
     export: {
-      explanationsTitle: "解释记录",
+      explanationsTitle: "查词记录",
       exported: "导出时间",
       source: "来源",
       model: "模型",

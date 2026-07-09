@@ -17,7 +17,9 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
+  TablePagination,
   TableRow,
   Tabs,
   TextField,
@@ -48,6 +50,10 @@ import { detectBrowserLanguage, getMessages, interpolate, LANGUAGE_OPTIONS } fro
 import type { Messages } from "../shared/i18n";
 import { markdownToSafeHtml } from "../shared/markdown";
 import type { ListAllDataResult, PronunciationResult, RuntimeMessage } from "../shared/messages";
+import {
+  getDefaultPromptTemplate,
+  isDefaultPromptTemplate
+} from "../shared/types";
 import type { AppSettings, ExplanationRecord, HighlightColor, HighlightRecord, HighlightStatus, VocabularyRecord } from "../shared/types";
 
 type TabKey = "highlights" | "vocabulary" | "explanations" | "settings";
@@ -63,6 +69,15 @@ const HIGHLIGHT_COLORS: Record<HighlightColor, string> = {
 };
 
 const REMARKING_GITHUB_URL = "https://github.com/ex90rts/remarking";
+const RECORDS_PAGE_SIZE = 20;
+
+const twoLineClampSx = {
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+  overflowWrap: "anywhere"
+};
 
 const markdownBodySx = {
   "& p": { my: 1 },
@@ -155,7 +170,8 @@ export function App() {
 }
 
 function HighlightsTab({ highlights, onChange, t }: { highlights: HighlightRecord[]; onChange: () => void; t: Messages }) {
-  const sortedHighlights = sortByCreatedAtDesc(highlights);
+  const sortedHighlights = useMemo(() => sortByCreatedAtDesc(highlights), [highlights]);
+  const { page, pageItems, setPage } = usePagedItems(sortedHighlights);
 
   return (
     <Table size="small">
@@ -169,7 +185,7 @@ function HighlightsTab({ highlights, onChange, t }: { highlights: HighlightRecor
         </TableRow>
       </TableHead>
       <TableBody>
-        {sortedHighlights.map((highlight) => (
+        {pageItems.map((highlight) => (
           <TableRow key={highlight.id}>
             <TableCell sx={{ maxWidth: 420 }}>
               <Typography component="div" variant="body2">
@@ -179,7 +195,11 @@ function HighlightsTab({ highlights, onChange, t }: { highlights: HighlightRecor
                 {t.common.created} {formatCreatedAt(highlight.createdAt)}
               </Typography>
             </TableCell>
-            <TableCell>{highlight.sourceTitle || highlight.sourceUrl}</TableCell>
+            <TableCell sx={{ width: 240, maxWidth: 240 }}>
+              <Typography component="div" variant="body2" title={highlight.sourceTitle || highlight.sourceUrl} sx={twoLineClampSx}>
+                {highlight.sourceTitle || highlight.sourceUrl}
+              </Typography>
+            </TableCell>
             <TableCell>
               <Chip size="small" label={highlight.status} title={getHighlightStatusDescription(highlight.status, t)} />
             </TableCell>
@@ -216,12 +236,18 @@ function HighlightsTab({ highlights, onChange, t }: { highlights: HighlightRecor
           </TableRow>
         ))}
       </TableBody>
+      <TableFooter>
+        <TableRow>
+          <RecordsTablePagination count={sortedHighlights.length} page={page} onPageChange={setPage} colSpan={5} />
+        </TableRow>
+      </TableFooter>
     </Table>
   );
 }
 
 function VocabularyTab({ vocabulary, onChange, t }: { vocabulary: VocabularyRecord[]; onChange: () => void; t: Messages }) {
-  const sortedVocabulary = sortByCreatedAtDesc(vocabulary);
+  const sortedVocabulary = useMemo(() => sortByCreatedAtDesc(vocabulary), [vocabulary]);
+  const { page, pageItems, setPage } = usePagedItems(sortedVocabulary);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   return (
@@ -229,8 +255,8 @@ function VocabularyTab({ vocabulary, onChange, t }: { vocabulary: VocabularyReco
       <colgroup>
         <col style={{ width: 48 }} />
         <col style={{ width: 260 }} />
-        <col />
-        <col style={{ width: 260 }} />
+        <col style={{ width: 240 }} />
+        <col style={{ width: 240 }} />
         <col style={{ width: 72 }} />
         <col style={{ width: 120 }} />
       </colgroup>
@@ -245,7 +271,7 @@ function VocabularyTab({ vocabulary, onChange, t }: { vocabulary: VocabularyReco
         </TableRow>
       </TableHead>
       <TableBody>
-        {sortedVocabulary.map((item) => (
+        {pageItems.map((item) => (
           <Fragment key={item.id}>
             <TableRow>
               <TableCell>
@@ -265,21 +291,16 @@ function VocabularyTab({ vocabulary, onChange, t }: { vocabulary: VocabularyReco
                   {t.common.created} {formatCreatedAt(item.createdAt)}
                 </Typography>
               </TableCell>
-              <TableCell sx={{ overflowWrap: "anywhere" }}>
-                <Typography
-                  component="div"
-                  variant="body2"
-                  sx={{
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden"
-                  }}
-                >
+              <TableCell sx={{ width: 240, maxWidth: 240 }}>
+                <Typography component="div" variant="body2" title={item.contextSentence} sx={twoLineClampSx}>
                   {item.contextSentence}
                 </Typography>
               </TableCell>
-              <TableCell sx={{ overflowWrap: "anywhere" }}>{item.sourceTitle || item.sourceUrl}</TableCell>
+              <TableCell sx={{ width: 240, maxWidth: 240 }}>
+                <Typography component="div" variant="body2" title={item.sourceTitle || item.sourceUrl} sx={twoLineClampSx}>
+                  {item.sourceTitle || item.sourceUrl}
+                </Typography>
+              </TableCell>
               <TableCell>
                 <IconButton aria-label={interpolate(t.options.actions.speakWord, { word: item.word })} onClick={() => speakWord(item.word)}>
                   <Volume2 size={16} />
@@ -336,13 +357,18 @@ function VocabularyTab({ vocabulary, onChange, t }: { vocabulary: VocabularyReco
           </Fragment>
         ))}
       </TableBody>
+      <TableFooter>
+        <TableRow>
+          <RecordsTablePagination count={sortedVocabulary.length} page={page} onPageChange={setPage} colSpan={6} />
+        </TableRow>
+      </TableFooter>
     </Table>
   );
 }
 
 function ExplanationsTab({ explanations, onChange, t }: { explanations: ExplanationRecord[]; onChange: () => void; t: Messages }) {
-  const sortedExplanations = sortByCreatedAtDesc(explanations);
-  const recentExplanations = sortedExplanations.slice(0, 10);
+  const sortedExplanations = useMemo(() => sortByCreatedAtDesc(explanations), [explanations]);
+  const { page, pageItems, setPage } = usePagedItems(sortedExplanations);
 
   return (
     <Stack spacing={2}>
@@ -364,7 +390,7 @@ function ExplanationsTab({ explanations, onChange, t }: { explanations: Explanat
           {t.options.actions.clearCache}
         </ConfirmDeleteButton>
       </Stack>
-      {recentExplanations.map((item) => (
+      {pageItems.map((item) => (
         <Paper variant="outlined" sx={{ p: 2 }} key={item.id}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
@@ -396,12 +422,63 @@ function ExplanationsTab({ explanations, onChange, t }: { explanations: Explanat
             }}
             dangerouslySetInnerHTML={{ __html: markdownToSafeHtml(item.result) }}
           />
-          <Typography variant="caption" color="text.secondary">
+          <Typography component="div" variant="caption" color="text.secondary" title={`${item.model} · ${item.sourceTitle || item.sourceUrl}`} sx={{ maxWidth: 240, ...twoLineClampSx }}>
             {item.model} · {item.sourceTitle || item.sourceUrl}
           </Typography>
         </Paper>
       ))}
+      <TablePagination
+        component="div"
+        rowsPerPageOptions={[RECORDS_PAGE_SIZE]}
+        count={sortedExplanations.length}
+        rowsPerPage={RECORDS_PAGE_SIZE}
+        page={page}
+        onPageChange={(_, nextPage) => setPage(nextPage)}
+      />
     </Stack>
+  );
+}
+
+function usePagedItems<T>(items: T[]) {
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(items.length / RECORDS_PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+
+  useEffect(() => {
+    setPage(0);
+  }, [items]);
+
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage);
+  }, [page, safePage]);
+
+  return {
+    page: safePage,
+    pageItems: items.slice(safePage * RECORDS_PAGE_SIZE, safePage * RECORDS_PAGE_SIZE + RECORDS_PAGE_SIZE),
+    setPage
+  };
+}
+
+function RecordsTablePagination({
+  count,
+  page,
+  onPageChange,
+  colSpan
+}: {
+  count: number;
+  page: number;
+  onPageChange: (page: number) => void;
+  colSpan: number;
+}) {
+  return (
+    <TablePagination
+      rowsPerPageOptions={[RECORDS_PAGE_SIZE]}
+      count={count}
+      rowsPerPage={RECORDS_PAGE_SIZE}
+      page={page}
+      onPageChange={(_, nextPage) => onPageChange(nextPage)}
+      colSpan={colSpan}
+    />
   );
 }
 
@@ -611,6 +688,25 @@ function SettingsTab({
     onChange();
   }
 
+  function updateLanguage(language: AppSettings["ui"]["language"]) {
+    const nextPromptTemplate = isDefaultPromptTemplate(settings.llm.promptTemplate)
+      ? getDefaultPromptTemplate(language)
+      : settings.llm.promptTemplate;
+
+    setSettings({
+      ...settings,
+      llm: { ...settings.llm, promptTemplate: nextPromptTemplate },
+      ui: { ...settings.ui, language }
+    });
+  }
+
+  function restoreDefaultPromptTemplate() {
+    setSettings({
+      ...settings,
+      llm: { ...settings.llm, promptTemplate: getDefaultPromptTemplate(settings.ui.language) }
+    });
+  }
+
   return (
     <Stack spacing={3} maxWidth={760}>
       <Typography variant="h6">{t.options.settings.language}</Typography>
@@ -619,10 +715,7 @@ function SettingsTab({
         label={t.options.settings.language}
         value={settings.ui.language}
         onChange={(event) =>
-          setSettings({
-            ...settings,
-            ui: { ...settings.ui, language: event.target.value as AppSettings["ui"]["language"] }
-          })
+          updateLanguage(event.target.value as AppSettings["ui"]["language"])
         }
       >
         {LANGUAGE_OPTIONS.map((language) => (
@@ -658,6 +751,9 @@ function SettingsTab({
         minRows={12}
         helperText={t.options.settings.promptTemplateHelp}
       />
+      <Button variant="text" size="small" onClick={restoreDefaultPromptTemplate} sx={{ alignSelf: "flex-start", mt: -2 }}>
+        {t.options.actions.restoreDefault}
+      </Button>
 
       <Typography variant="h6">{t.options.settings.pronunciation}</Typography>
       <TextField
@@ -676,6 +772,20 @@ function SettingsTab({
       <FormControlLabel
         control={<Checkbox checked={globalEnabled} onChange={(event) => setGlobalEnabled(event.target.checked)} />}
         label={t.options.settings.enableExtensionGlobally}
+      />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={settings.ui.autoCloseLookupPanelOnCopy}
+            onChange={(event) =>
+              setSettings({
+                ...settings,
+                ui: { ...settings.ui, autoCloseLookupPanelOnCopy: event.target.checked }
+              })
+            }
+          />
+        }
+        label={t.options.settings.autoCloseLookupPanelOnCopy}
       />
       <TextField
         select
