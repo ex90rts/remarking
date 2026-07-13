@@ -2,6 +2,8 @@ title: Remarker
 description: Site for the Remarker browser extension.
 lang: en
 markdown: kramdown
+theme: jekyll-theme-cayman
 plugins: []
 exclude:
+  - product-specs/
   - README.md
