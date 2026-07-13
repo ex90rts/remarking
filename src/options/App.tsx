@@ -112,8 +112,8 @@ const HIGHLIGHT_COLORS: Record<HighlightColor, string> = {
   purple: "#d8c7ff",
 };
 
-const REMARKING_GITHUB_URL = "https://github.com/ex90rts/remarking";
-const REPORT_ISSUE_URL = "https://github.com/ex90rts/remarking/issues/new";
+const REMARKER_GITHUB_URL = "https://github.com/ex90rts/remarker";
+const REPORT_ISSUE_URL = "https://github.com/ex90rts/remarker/issues/new";
 const TOAST_DURATION_MS = 1500;
 const PROMPT_REQUIRED_VARIABLES = [
   "{{task}}",
@@ -242,7 +242,7 @@ export function App() {
           <Stack direction="row" spacing={1.5}>
             <Button
               startIcon={<Github size={16} />}
-              href={REMARKING_GITHUB_URL}
+              href={REMARKER_GITHUB_URL}
               target="_blank"
               rel="noreferrer"
               style={{ textTransform: "none" }}
