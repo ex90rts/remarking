@@ -6,17 +6,13 @@ Remarker 是一个本地优先的 Chrome 浏览器插件，面向深度网页阅
 
 Remarker 适合学生、研究者、工程师和外语学习者阅读外文文章、技术文档、长文、论文和网页资料时使用。它把理解、摘录、积累和复习放在同一个可重复的阅读流程里。
 
-也可以把 Remarker 理解为：AI 阅读助手、浏览器划线工具、Chrome 生词本、上下文词典插件、网页标注工具、本地优先学习笔记工具、LLM 外语学习插件。
+<div align="center">
+  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-01.webp" alt="截图" width="80%">
+</div>
 
-## 项目概览
-
-- 产品类型：用于阅读、划线、AI 查词、生词沉淀和笔记导出的浏览器插件。
-- 运行平台：基于 Manifest V3 的 Chrome-compatible 浏览器扩展。
-- 核心流程：选中文本、保存划线、结合上下文解释单词、自动加入生词表、复访页面时恢复标注。
-- 存储方式：默认使用浏览器本地 IndexedDB。
-- AI 模型支持：OpenAI-compatible 服务商和自定义接口。
-- 导出格式：应用数据支持 JSON，划线和生词支持 Markdown。
-- 界面语言：英语、简体中文、繁体中文、西班牙语。
+<div align="center">
+  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-04.webp" alt="截图" width="80%">
+</div>
 
 ## 为什么使用 Remarker
 

@@ -6,19 +6,13 @@ Remarker is a local-first Chrome extension for deep web reading, language learni
 
 Remarker is useful for students, researchers, engineers, and language learners who read foreign-language articles, documentation, essays, papers, or long-form web content and want a private, repeatable workflow for understanding, collecting, and reviewing what they read.
 
-![Page highlight](https://ex90rts.github.io/remarker/assets/images/screenshot-01.webp)
+<div align="center">
+  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-01.webp" alt="截图" width="80%">
+</div>
 
-![Page highlight](https://ex90rts.github.io/remarker/assets/images/screenshot-04.webp)
-
-## Project Snapshot
-
-- Product: Browser extension for reading, highlighting, AI word explanation, vocabulary capture, and note export.
-- Platform: Chrome-compatible browser extension built on Manifest V3.
-- Primary workflow: Select text, highlight passages, explain words in context, save vocabulary, and revisit pages with restored annotations.
-- Storage model: Local browser IndexedDB by default.
-- AI model support: OpenAI-compatible providers and custom endpoints.
-- Export formats: JSON for app data, Markdown for highlights and vocabulary.
-- Interface languages: English, Simplified Chinese, Traditional Chinese, and Spanish.
+<div align="center">
+  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-04.webp" alt="截图" width="80%">
+</div>
 
 ## Why Remarker
 
