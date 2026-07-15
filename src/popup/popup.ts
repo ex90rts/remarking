@@ -1,14 +1,21 @@
 import "./popup.css";
 import { detectBrowserLanguage, getMessages } from "../shared/i18n";
 import type { Messages, SupportedLanguage } from "../shared/i18n";
+import type { AppSettings } from "../shared/types";
 
 const globalEnabledInput = document.querySelector<HTMLInputElement>("#globalEnabled");
 const siteEnabledInput = document.querySelector<HTMLInputElement>("#siteEnabled");
+const autoCloseLookupPanelOnCopyInput = document.querySelector<HTMLInputElement>(
+  "#autoCloseLookupPanelOnCopy",
+);
 const statusText = document.querySelector<HTMLElement>("#statusText");
 const addFootprintButton = document.querySelector<HTMLButtonElement>("#addFootprint");
 const openOptionsButton = document.querySelector<HTMLButtonElement>("#openOptions");
 const globalEnabledLabel = document.querySelector<HTMLElement>("#globalEnabledLabel");
 const siteEnabledLabel = document.querySelector<HTMLElement>("#siteEnabledLabel");
+const autoCloseLookupPanelOnCopyLabel = document.querySelector<HTMLElement>(
+  "#autoCloseLookupPanelOnCopyLabel",
+);
 
 let currentHostname = "";
 let currentTabUrl = "";
@@ -16,6 +23,7 @@ let currentTabTitle = "";
 let footprintAdded = false;
 let globalEnabled = true;
 let disabledSites: string[] = [];
+let currentSettings: AppSettings | undefined;
 let t: Messages = getMessages(detectBrowserLanguage());
 
 init().catch((error) => {
@@ -23,7 +31,7 @@ init().catch((error) => {
 });
 
 async function init(): Promise<void> {
-  await loadMessages();
+  await loadSettingsAndMessages();
   applyMessages();
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -41,6 +49,11 @@ async function init(): Promise<void> {
     siteEnabledInput.checked = currentHostname
       ? !disabledSites.includes(currentHostname)
       : false;
+  }
+  if (autoCloseLookupPanelOnCopyInput) {
+    autoCloseLookupPanelOnCopyInput.checked = Boolean(
+      currentSettings?.ui.autoCloseLookupPanelOnCopy,
+    );
   }
   if (statusText) statusText.textContent = currentHostname || t.popup.noSite;
   updateSiteEnabledState();
@@ -60,6 +73,23 @@ async function init(): Promise<void> {
     await chrome.storage.local.set({ disabledSites });
   });
 
+  autoCloseLookupPanelOnCopyInput?.addEventListener("change", async () => {
+    if (!currentSettings) return;
+    currentSettings = {
+      ...currentSettings,
+      ui: {
+        ...currentSettings.ui,
+        autoCloseLookupPanelOnCopy: Boolean(
+          autoCloseLookupPanelOnCopyInput.checked,
+        ),
+      },
+    };
+    await chrome.runtime.sendMessage({
+      type: "SAVE_SETTINGS",
+      settings: currentSettings,
+    });
+  });
+
   openOptionsButton?.addEventListener("click", () => {
     chrome.runtime.openOptionsPage();
   });
@@ -76,18 +106,27 @@ async function init(): Promise<void> {
   });
 }
 
-async function loadMessages(): Promise<void> {
-  const settings = await chrome.runtime
+async function loadSettingsAndMessages(): Promise<void> {
+  currentSettings = await chrome.runtime
     .sendMessage({ type: "GET_SETTINGS" })
-    .then((response: { ok: boolean; result?: { ui?: { language?: SupportedLanguage } } }) => response.result)
+    .then(
+      (response: { ok: boolean; result?: AppSettings }) => response.result,
+    )
     .catch(() => undefined);
-  t = getMessages(settings?.ui?.language ?? detectBrowserLanguage());
+  t = getMessages(
+    (currentSettings?.ui?.language as SupportedLanguage | undefined) ??
+      detectBrowserLanguage(),
+  );
 }
 
 function applyMessages(): void {
   if (statusText) statusText.textContent = t.popup.loading;
   if (globalEnabledLabel) globalEnabledLabel.textContent = t.popup.enableExtension;
   if (siteEnabledLabel) siteEnabledLabel.textContent = t.popup.enableCurrentSite;
+  if (autoCloseLookupPanelOnCopyLabel) {
+    autoCloseLookupPanelOnCopyLabel.textContent =
+      t.options.settings.autoCloseLookupPanelOnCopy;
+  }
   if (openOptionsButton) openOptionsButton.textContent = t.popup.managePage;
   updateSiteEnabledState();
   updateAddFootprintButton();

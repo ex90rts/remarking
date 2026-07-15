@@ -52,14 +52,13 @@ export const es: Messages = {
       footprints: "Huellas",
       highlights: "Resaltados",
       vocabulary: "Vocabulario",
-      explanations: "Registros de búsqueda",
       settings: "Ajustes",
       about: "Acerca de",
     },
     columns: {
       pageTitle: "Título de la página",
       site: "Sitio",
-      browsedAt: "Lectura",
+      browsedAt: "Creado",
       highlightCount: "Resaltados",
       lookupCount: "Vocabulario",
       highlightedText: "Texto resaltado",
@@ -92,9 +91,7 @@ export const es: Messages = {
       speakWord: "Pronunciar {{word}}",
       deleteVocabularyItem: "Eliminar elemento de vocabulario",
       copyExplanation: "Copiar explicación",
-      deleteExplanation: "Eliminar explicación",
       export: "Exportar",
-      clearCache: "Borrar caché",
       exportJson: "Exportar JSON",
       exportMarkdown: "Exportar Markdown",
       importJson: "Importar JSON",
@@ -106,8 +103,6 @@ export const es: Messages = {
         "¿Archivar esta huella? Se ocultará de la lista actual.",
       deleteHighlight: "¿Eliminar este resaltado?",
       deleteVocabularyItem: "¿Eliminar este elemento de vocabulario?",
-      deleteExplanation: "¿Eliminar este registro de búsqueda?",
-      clearExplanations: "¿Borrar todos los registros de búsqueda?",
     },
     settings: {
       llm: "LLM",
@@ -123,7 +118,7 @@ export const es: Messages = {
         gemini:
           "Incluye una cuota gratuita útil que Google restablece periódicamente.",
         openrouter:
-          "Hay modelos gratuitos; usa openrouter/free o elige uno en el marketplace.",
+          "Hay modelos gratuitos; usa openrouter/free o elige uno en el marketplace, pero no son estables suficientemente.",
         deepseek:
           "No tiene cuota gratuita oficial por ahora, pero v4 flash es muy barato: unos CNY 0,02 por 30 llamadas.",
         aliyun:
@@ -190,7 +185,6 @@ export const es: Messages = {
       pending: "Este resaltado aún no se ha confirmado en una página fuente.",
     },
     export: {
-      explanationsTitle: "Registros de búsqueda",
       exported: "Exportado",
       source: "Fuente",
       model: "Modelo",

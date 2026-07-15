@@ -1,28 +1,27 @@
-import { createExplanationCacheKey } from "../shared/cache-key";
+import { createLookupCacheKey } from "../shared/cache-key";
 import type { RuntimeMessage, PronunciationResult } from "../shared/messages";
 import { stripOuterCodeFence } from "../shared/markdown";
 import { getHostname, normalizeUrlKey } from "../shared/url";
 import {
-  clearStore,
   deleteFromStore,
   getAllFromStore,
   getAllFootprints,
-  getExplanationByCacheKey,
   getFootprint,
   getHighlightsForUrl,
   getSettings,
+  getVocabularyByCacheKey,
   importSnapshot,
   putInStore,
   saveSettings,
 } from "../shared/repositories/db";
 import type {
   AppSettings,
-  ExplanationRecord,
   FootprintListItem,
   FootprintRecord,
   HighlightRecord,
   HighlightStatus,
   LlmProvider,
+  SelectionLookupResult,
   VocabularyRecord,
 } from "../shared/types";
 import { getEffectiveLlmConfig } from "../shared/types";
@@ -65,9 +64,6 @@ async function handleMessage(message: RuntimeMessage): Promise<unknown> {
     case "GET_HIGHLIGHTS_FOR_URL":
       return getHighlightsForUrl(message.urlKey);
 
-    case "GET_WORD_EXPLANATIONS_FOR_URL":
-      return getWordExplanationsForUrl(message.urlKey);
-
     case "GET_VOCABULARY_FOR_URL":
       return getVocabularyForUrl(message.urlKey);
 
@@ -95,7 +91,10 @@ async function handleMessage(message: RuntimeMessage): Promise<unknown> {
       return { id: message.id };
 
     case "SAVE_VOCABULARY":
-      await putInStore("vocabulary", message.record);
+      await Promise.all([
+        putInStore("vocabulary", message.record),
+        ensureFootprintRecord(message.record.sourceUrl, message.record.sourceTitle),
+      ]);
       return message.record;
 
     case "SET_FOOTPRINT_STAR":
@@ -127,22 +126,17 @@ async function handleMessage(message: RuntimeMessage): Promise<unknown> {
       return { opened: true };
 
     case "LIST_ALL_DATA": {
-      const [highlights, vocabulary, explanations, footprints, settings] =
+      const [highlights, vocabulary, footprints, settings] =
         await Promise.all([
           getAllFromStore<HighlightRecord>("highlights"),
           getAllFromStore<VocabularyRecord>("vocabulary"),
-          getAllFromStore<ExplanationRecord>("explanations"),
           getAllFootprints(),
           getSettings(),
         ]);
-      const mergedVocabulary = await mergeVocabularyWithLegacyExplanations(
-        vocabulary,
-        explanations,
-      );
       return {
-        footprints: buildFootprintList(highlights, explanations, footprints),
+        footprints: buildFootprintList(highlights, vocabulary, footprints),
         highlights,
-        vocabulary: mergedVocabulary,
+        vocabulary,
         settings,
       };
     }
@@ -150,14 +144,6 @@ async function handleMessage(message: RuntimeMessage): Promise<unknown> {
     case "IMPORT_SNAPSHOT":
       await importSnapshot(message.snapshot);
       return { imported: true };
-
-    case "DELETE_EXPLANATION":
-      await deleteFromStore("explanations", message.id);
-      return { id: message.id };
-
-    case "CLEAR_EXPLANATIONS":
-      await clearStore("explanations");
-      return { cleared: true };
   }
 }
 
@@ -221,41 +207,42 @@ async function archiveFootprint(
 
 async function explainSelection(
   input: Extract<RuntimeMessage, { type: "EXPLAIN_SELECTION" }>,
-): Promise<ExplanationRecord> {
+): Promise<SelectionLookupResult> {
   const settings = await getSettings();
   const llm = getEffectiveLlmConfig(settings.llm);
   const modelIdentity = `${llm.provider}:${llm.model}`;
   const targetLanguage = getTargetLanguageName(settings);
-  const { cacheKey, contextHash } = await createExplanationCacheKey({
+  const urlKey = safeNormalizeUrlKey(input.sourceUrl);
+  const { cacheKey, contextHash } = await createLookupCacheKey({
     selectedText: input.selectedText,
     context: input.context,
+    sourceKey: urlKey,
     model: modelIdentity,
     selectionKind: input.selectionKind,
     promptTemplate: settings.llm.promptTemplate,
     targetLanguage,
   });
 
-  const cached = await getExplanationByCacheKey(cacheKey);
+  const cached =
+    input.selectionKind === "word"
+      ? await getVocabularyByCacheKey(cacheKey)
+      : undefined;
   if (cached && !input.forceRefresh) {
-    const sanitizedResult = stripOuterCodeFence(cached.result);
-    const currentRecord = {
+    const sanitizedResult = stripOuterCodeFence(cached.translation ?? "");
+    const currentRecord: VocabularyRecord = {
       ...cached,
-      urlKey: cached.urlKey ?? safeNormalizeUrlKey(input.sourceUrl),
+      urlKey,
       sourceUrl: input.sourceUrl,
       sourceTitle: input.sourceTitle,
       anchor: input.anchor ?? cached.anchor,
-      result: sanitizedResult,
+      translation: sanitizedResult,
+      updatedAt: new Date().toISOString(),
     };
-    if (input.selectionKind === "word") {
-      await Promise.all([
-        putInStore("explanations", currentRecord),
-        ensureFootprintRecord(currentRecord.sourceUrl, currentRecord.sourceTitle),
-      ]);
-      await upsertVocabularyFromExplanation(currentRecord);
-    } else {
-      await putInStore("explanations", currentRecord);
-    }
-    return currentRecord;
+    await Promise.all([
+      putInStore("vocabulary", currentRecord),
+      ensureFootprintRecord(currentRecord.sourceUrl, currentRecord.sourceTitle),
+    ]);
+    return vocabularyToLookupResult(currentRecord);
   }
 
   if (!isLlmConfigured(settings)) {
@@ -276,60 +263,51 @@ async function explainSelection(
     context: input.context,
   });
 
-  const record: ExplanationRecord = {
+  const now = new Date().toISOString();
+  if (input.selectionKind === "text") {
+    return {
+      id: crypto.randomUUID(),
+      selectionKind: "text",
+      selectedText: input.selectedText,
+      context: input.context,
+      sourceUrl: input.sourceUrl,
+      sourceTitle: input.sourceTitle,
+      anchor: input.anchor,
+      result,
+      createdAt: now,
+    };
+  }
+
+  const record: VocabularyRecord = {
     id: cached?.id ?? crypto.randomUUID(),
-    cacheKey,
-    selectionKind: input.selectionKind,
-    selectedText: input.selectedText,
-    context: input.context,
-    contextHash,
-    urlKey: safeNormalizeUrlKey(input.sourceUrl),
+    word: input.selectedText,
+    normalizedWord: input.selectedText.trim().toLowerCase(),
+    urlKey,
     sourceUrl: input.sourceUrl,
     sourceTitle: input.sourceTitle,
+    contextSentence: input.context,
     anchor: input.anchor,
+    translation: result,
+    cacheKey,
+    contextHash,
     model: modelIdentity,
-    result,
-    createdAt: new Date().toISOString(),
+    createdAt: cached?.createdAt ?? now,
+    updatedAt: now,
   };
 
-  if (input.selectionKind === "word") {
-    await Promise.all([
-      putInStore("explanations", record),
-      ensureFootprintRecord(record.sourceUrl, record.sourceTitle),
-    ]);
-    await upsertVocabularyFromExplanation(record);
-  } else {
-    await putInStore("explanations", record);
-  }
-  return record;
-}
-
-async function getWordExplanationsForUrl(
-  urlKey: string,
-): Promise<ExplanationRecord[]> {
-  const records = await getAllFromStore<ExplanationRecord>("explanations");
-  return records.filter((record) => {
-    if ((record.urlKey ?? safeNormalizeUrlKey(record.sourceUrl)) !== urlKey) {
-      return false;
-    }
-    if (record.selectionKind) return record.selectionKind === "word";
-    return isWordLikeSelection(record.selectedText);
-  });
+  await Promise.all([
+    putInStore("vocabulary", record),
+    ensureFootprintRecord(record.sourceUrl, record.sourceTitle),
+  ]);
+  return vocabularyToLookupResult(record);
 }
 
 async function getVocabularyForUrl(
   urlKey: string,
 ): Promise<VocabularyRecord[]> {
-  const [vocabulary, explanations] = await Promise.all([
-    getAllFromStore<VocabularyRecord>("vocabulary"),
-    getAllFromStore<ExplanationRecord>("explanations"),
-  ]);
-  const mergedVocabulary = await mergeVocabularyWithLegacyExplanations(
-    vocabulary,
-    explanations,
-  );
-  return mergedVocabulary.filter(
-    (record) => (record.urlKey ?? safeNormalizeUrlKey(record.sourceUrl)) === urlKey,
+  const vocabulary = await getAllFromStore<VocabularyRecord>("vocabulary");
+  return vocabulary.filter(
+    (record) => record.urlKey === urlKey,
   );
 }
 
@@ -341,129 +319,39 @@ async function getFootprintForSourceUrl(
   const existing = await getFootprint(urlKey);
   if (existing) return existing;
 
-  const [highlights, explanations] = await Promise.all([
+  const [highlights, vocabulary] = await Promise.all([
     getHighlightsForUrl(urlKey),
-    getWordExplanationsForUrl(urlKey),
+    getVocabularyForUrl(urlKey),
   ]);
-  if (highlights.length === 0 && explanations.length === 0) return undefined;
+  if (highlights.length === 0 && vocabulary.length === 0) return undefined;
 
   const sourceTitle =
-    highlights[0]?.sourceTitle || explanations[0]?.sourceTitle || sourceUrl;
+    highlights[0]?.sourceTitle || vocabulary[0]?.sourceTitle || sourceUrl;
   return ensureFootprintRecord(sourceUrl, sourceTitle);
 }
 
 async function deleteVocabulary(id: string): Promise<{ id: string }> {
-  const [vocabulary, explanations] = await Promise.all([
-    getAllFromStore<VocabularyRecord>("vocabulary"),
-    getAllFromStore<ExplanationRecord>("explanations"),
-  ]);
-  const record = vocabulary.find((item) => item.id === id);
-  const mergeKey = record ? getVocabularyMergeKey(record) : undefined;
-
   await deleteFromStore("vocabulary", id);
-
-  for (const explanation of explanations) {
-    if (
-      explanation.id === id ||
-      (mergeKey &&
-        getVocabularyMergeKey(vocabularyFromExplanation(explanation)) ===
-          mergeKey)
-    ) {
-      await deleteFromStore("explanations", explanation.id);
-    }
-  }
-
   return { id };
 }
 
-async function mergeVocabularyWithLegacyExplanations(
-  vocabulary: VocabularyRecord[],
-  explanations: ExplanationRecord[],
-): Promise<VocabularyRecord[]> {
-  const byKey = new Map(
-    vocabulary.map((record) => [getVocabularyMergeKey(record), record]),
-  );
-  let changed = false;
-
-  for (const explanation of explanations) {
-    if (!isWordLikeSelection(explanation.selectedText)) continue;
-    const record = vocabularyFromExplanation(explanation);
-    const key = getVocabularyMergeKey(record);
-    const existing = byKey.get(key);
-
-    if (!existing) {
-      byKey.set(key, record);
-      await putInStore("vocabulary", record);
-      changed = true;
-      continue;
-    }
-
-    if (!existing.translation && record.translation) {
-      const next = {
-        ...existing,
-        translation: record.translation,
-        updatedAt: new Date().toISOString(),
-      };
-      byKey.set(key, next);
-      await putInStore("vocabulary", next);
-      changed = true;
-    }
-  }
-
-  return changed ? [...byKey.values()] : vocabulary;
-}
-
-async function upsertVocabularyFromExplanation(
-  explanation: ExplanationRecord,
-): Promise<VocabularyRecord> {
-  const next = vocabularyFromExplanation(explanation);
-  const records = await getAllFromStore<VocabularyRecord>("vocabulary");
-  const existing = records.find(
-    (record) => getVocabularyMergeKey(record) === getVocabularyMergeKey(next),
-  );
-  const record = existing
-    ? {
-        ...existing,
-        sourceTitle: explanation.sourceTitle,
-        anchor: explanation.anchor ?? existing.anchor,
-        translation: explanation.result,
-        updatedAt: new Date().toISOString(),
-      }
-    : next;
-
-  await putInStore("vocabulary", record);
-  return record;
-}
-
-function vocabularyFromExplanation(
-  explanation: ExplanationRecord,
-): VocabularyRecord {
+function vocabularyToLookupResult(record: VocabularyRecord): SelectionLookupResult {
   return {
-    id: explanation.id,
-    word: explanation.selectedText,
-    normalizedWord: explanation.selectedText.trim().toLowerCase(),
-    urlKey: explanation.urlKey ?? safeNormalizeUrlKey(explanation.sourceUrl),
-    sourceUrl: explanation.sourceUrl,
-    sourceTitle: explanation.sourceTitle,
-    contextSentence: explanation.context,
-    anchor: explanation.anchor,
-    translation: explanation.result,
-    createdAt: explanation.createdAt,
-    updatedAt: explanation.createdAt,
+    id: record.id,
+    selectionKind: "word",
+    selectedText: record.word,
+    context: record.contextSentence,
+    sourceUrl: record.sourceUrl,
+    sourceTitle: record.sourceTitle,
+    anchor: record.anchor,
+    result: record.translation ?? "",
+    createdAt: record.createdAt,
   };
-}
-
-function getVocabularyMergeKey(record: VocabularyRecord): string {
-  return [
-    record.normalizedWord || record.word.trim().toLowerCase(),
-    record.urlKey ?? safeNormalizeUrlKey(record.sourceUrl),
-    record.contextSentence.trim().replace(/\s+/g, " "),
-  ].join("\n");
 }
 
 function buildFootprintList(
   highlights: HighlightRecord[],
-  explanations: ExplanationRecord[],
+  vocabulary: VocabularyRecord[],
   footprints: FootprintRecord[],
 ): FootprintListItem[] {
   const footprintsByKey = new Map(
@@ -498,22 +386,15 @@ function buildFootprintList(
     });
   }
 
-  for (const explanation of explanations) {
-    if (explanation.selectionKind && explanation.selectionKind !== "word") {
-      continue;
-    }
-    if (!explanation.selectionKind && !isWordLikeSelection(explanation.selectedText)) {
-      continue;
-    }
-
-    const urlKey = explanation.urlKey || safeNormalizeUrlKey(explanation.sourceUrl);
+  for (const item of vocabulary) {
+    const urlKey = item.urlKey;
     if (!urlKey) continue;
     const existing = activityByKey.get(urlKey);
     activityByKey.set(urlKey, {
       ...(existing ?? createFootprintListItem(urlKey, footprintsByKey.get(urlKey))),
       sourceUrl: urlKey,
       sourceTitle:
-        explanation.sourceTitle ||
+        item.sourceTitle ||
         existing?.sourceTitle ||
         footprintsByKey.get(urlKey)?.sourceTitle ||
         urlKey,
@@ -523,7 +404,7 @@ function buildFootprintList(
         safeGetHostname(urlKey),
       browsedAt: getLatestIsoTimestamp(
         existing?.browsedAt,
-        explanation.createdAt,
+        item.createdAt,
       ),
       highlightCount: existing?.highlightCount ?? 0,
       lookupCount: (existing?.lookupCount ?? 0) + 1,
@@ -532,10 +413,10 @@ function buildFootprintList(
 
   return [...activityByKey.values()]
     .filter((record) => !record.archivedAt)
-    .sort((left, right) => {
-      if (left.starred !== right.starred) return left.starred ? -1 : 1;
-      return Date.parse(right.browsedAt) - Date.parse(left.browsedAt);
-    });
+    .sort(
+      (left, right) =>
+        Date.parse(right.createdAt) - Date.parse(left.createdAt),
+    );
 }
 
 function createFootprintListItem(
@@ -624,10 +505,6 @@ async function ensureFootprintState(
   const existing = await getFootprint(urlKey);
   if (existing) return existing;
   return ensureFootprintRecord(urlKey, urlKey);
-}
-
-function isWordLikeSelection(value: string): boolean {
-  return /^[A-Za-z]+(?:[-'][A-Za-z]+)*$/.test(value.trim());
 }
 
 async function callOpenAiCompatibleApi(input: {

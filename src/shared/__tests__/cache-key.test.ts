@@ -1,55 +1,70 @@
 import { describe, expect, it } from "vitest";
-import { createExplanationCacheKey } from "../cache-key";
+import { createLookupCacheKey } from "../cache-key";
 
-describe("createExplanationCacheKey", () => {
-  it("uses selected text, normalized context, and model", async () => {
-    const first = await createExplanationCacheKey({
+describe("createLookupCacheKey", () => {
+  it("uses selected text, normalized context, source, and model", async () => {
+    const first = await createLookupCacheKey({
       selectedText: "architecture",
       context: "A   stable architecture",
+      sourceKey: "https://example.com/doc",
       model: "model-a",
       selectionKind: "word",
       promptTemplate: "Explain {{selection}}",
       targetLanguage: "Simplified Chinese"
     });
-    const second = await createExplanationCacheKey({
+    const second = await createLookupCacheKey({
       selectedText: "architecture",
       context: "A stable architecture",
+      sourceKey: "https://example.com/doc",
       model: "model-a",
       selectionKind: "word",
       promptTemplate: "Explain   {{selection}}",
       targetLanguage: "Simplified Chinese"
     });
-    const third = await createExplanationCacheKey({
+    const third = await createLookupCacheKey({
       selectedText: "architecture",
       context: "A stable architecture",
+      sourceKey: "https://example.com/doc",
       model: "model-b",
       selectionKind: "word",
       promptTemplate: "Explain {{selection}}",
       targetLanguage: "Simplified Chinese"
     });
-    const fourth = await createExplanationCacheKey({
+    const fourth = await createLookupCacheKey({
       selectedText: "architecture",
       context: "A stable architecture",
+      sourceKey: "https://example.com/doc",
       model: "model-a",
       selectionKind: "text",
       promptTemplate: "Explain {{selection}}",
       targetLanguage: "Simplified Chinese"
     });
-    const fifth = await createExplanationCacheKey({
+    const fifth = await createLookupCacheKey({
       selectedText: "architecture",
       context: "A stable architecture",
+      sourceKey: "https://example.com/doc",
       model: "model-a",
       selectionKind: "word",
       promptTemplate: "Translate {{selection}}",
       targetLanguage: "Simplified Chinese"
     });
-    const sixth = await createExplanationCacheKey({
+    const sixth = await createLookupCacheKey({
       selectedText: "architecture",
       context: "A stable architecture",
+      sourceKey: "https://example.com/doc",
       model: "model-a",
       selectionKind: "word",
       promptTemplate: "Explain {{selection}}",
       targetLanguage: "English"
+    });
+    const seventh = await createLookupCacheKey({
+      selectedText: "architecture",
+      context: "A stable architecture",
+      sourceKey: "https://example.com/other-doc",
+      model: "model-a",
+      selectionKind: "word",
+      promptTemplate: "Explain {{selection}}",
+      targetLanguage: "Simplified Chinese"
     });
 
     expect(first.cacheKey).toBe(second.cacheKey);
@@ -57,5 +72,6 @@ describe("createExplanationCacheKey", () => {
     expect(first.cacheKey).not.toBe(fourth.cacheKey);
     expect(first.cacheKey).not.toBe(fifth.cacheKey);
     expect(first.cacheKey).not.toBe(sixth.cacheKey);
+    expect(first.cacheKey).not.toBe(seventh.cacheKey);
   });
 });

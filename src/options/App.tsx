@@ -82,7 +82,6 @@ import {
 } from "../shared/types";
 import type {
   AppSettings,
-  ExplanationRecord,
   FootprintListItem,
   FootprintRecord,
   HighlightColor,
@@ -658,7 +657,7 @@ function FootprintsTab({
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">
-                    {formatCreatedAt(item.browsedAt)}
+                    {formatCreatedAt(item.createdAt)}
                   </Typography>
                 </TableCell>
                 <TableCell>
@@ -1736,7 +1735,6 @@ function SettingsTab({
       footprints?: FootprintRecord[];
       highlights?: HighlightRecord[];
       vocabulary?: VocabularyRecord[];
-      explanations?: ExplanationRecord[];
     };
     await sendMessage({ type: "IMPORT_SNAPSHOT", snapshot: parsed });
     await onChange();
@@ -1986,36 +1984,6 @@ function SettingsTab({
 
       <Typography variant="h6">{t.options.settings.preferences}</Typography>
       <Stack spacing={1.75}>
-        <Stack spacing={0.25}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={globalEnabled}
-                onChange={(event) => setGlobalEnabled(event.target.checked)}
-              />
-            }
-            label={t.options.settings.enableExtensionGlobally}
-            sx={{ mr: 0 }}
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={settings.ui.autoCloseLookupPanelOnCopy}
-                onChange={(event) =>
-                  setSettings({
-                    ...settings,
-                    ui: {
-                      ...settings.ui,
-                      autoCloseLookupPanelOnCopy: event.target.checked,
-                    },
-                  })
-                }
-              />
-            }
-            label={t.options.settings.autoCloseLookupPanelOnCopy}
-            sx={{ mr: 0 }}
-          />
-        </Stack>
         <TextField
           select
           label={t.options.settings.recordsPageSize}

@@ -10,20 +10,22 @@ export async function createContextHash(context: string): Promise<string> {
   return sha256Hex(context.trim().replace(/\s+/g, " "));
 }
 
-export async function createExplanationCacheKey(input: {
+export async function createLookupCacheKey(input: {
   selectedText: string;
   context: string;
+  sourceKey: string;
   model: string;
   selectionKind: "word" | "text";
   promptTemplate: string;
   targetLanguage: string;
 }): Promise<{ cacheKey: string; contextHash: string }> {
   const normalizedText = input.selectedText.trim().replace(/\s+/g, " ");
+  const normalizedSourceKey = input.sourceKey.trim().replace(/\s+/g, " ");
   const normalizedPromptTemplate = input.promptTemplate.trim().replace(/\s+/g, " ");
   const normalizedTargetLanguage = input.targetLanguage.trim().replace(/\s+/g, " ");
   const contextHash = await createContextHash(input.context);
   const cacheKey = await sha256Hex(
-    `${input.selectionKind}\n${normalizedText}\n${contextHash}\n${input.model}\n${normalizedPromptTemplate}\n${normalizedTargetLanguage}`
+    `${input.selectionKind}\n${normalizedText}\n${contextHash}\n${normalizedSourceKey}\n${input.model}\n${normalizedPromptTemplate}\n${normalizedTargetLanguage}`
   );
   return { cacheKey, contextHash };
 }

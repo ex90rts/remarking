@@ -60,11 +60,13 @@ interface RangeMatch {
   start: number;
 }
 
-interface ExplanationRecord {
+interface SelectionLookupResult {
   id: string;
-  selectionKind?: "word" | "text";
+  selectionKind: "word" | "text";
   selectedText: string;
+  context: string;
   sourceUrl: string;
+  sourceTitle: string;
   anchor?: TextAnchor;
   result: string;
   createdAt: string;
@@ -74,6 +76,7 @@ interface VocabularyRecord {
   id: string;
   word: string;
   sourceUrl: string;
+  contextSentence: string;
   anchor?: TextAnchor;
   translation?: string;
   createdAt: string;
@@ -301,7 +304,7 @@ async function activateExtension(): Promise<void> {
   await loadMessages();
   createOverlay();
   await restoreHighlights();
-  await restoreLookupExplanations();
+  await restoreVocabularyMarkers();
   document.addEventListener("selectionchange", selectionChangeListener);
   document.addEventListener("mousedown", handleDocumentMouseDown, true);
   extensionActive = true;
@@ -671,7 +674,7 @@ async function explainCurrentSelection(forceRefresh: boolean): Promise<void> {
     currentSelection.isWord ? t.explainingProgress : t.translatingProgress,
     { isLoading: true },
   );
-  const explanation = await sendMessage<ExplanationRecord>({
+  const explanation = await sendMessage<SelectionLookupResult>({
     type: "EXPLAIN_SELECTION",
     selectionKind: currentSelection.isWord ? "word" : "text",
     selectedText: currentSelection.text,
@@ -689,6 +692,7 @@ async function explainCurrentSelection(forceRefresh: boolean): Promise<void> {
         id: explanation.id,
         word: explanation.selectedText,
         sourceUrl: explanation.sourceUrl,
+        contextSentence: explanation.context,
         anchor: explanation.anchor ?? anchor,
         translation: explanation.result,
         createdAt: explanation.createdAt,
@@ -825,7 +829,7 @@ async function restoreHighlights(): Promise<void> {
     });
 }
 
-async function restoreLookupExplanations(): Promise<void> {
+async function restoreVocabularyMarkers(): Promise<void> {
   const records = await sendMessage<VocabularyRecord[]>({
     type: "GET_VOCABULARY_FOR_URL",
     urlKey: currentUrlKey,
@@ -835,16 +839,19 @@ async function restoreLookupExplanations(): Promise<void> {
 
 function applyLookupMarkers(records: VocabularyRecord[]): void {
   const snapshot = getAnchorTextSnapshot();
+  const normalizedSnapshot = createNormalizedTextMap(snapshot.text);
   const plan: Array<{
     record: VocabularyRecord;
     match: RangeMatch;
   }> = [];
 
   for (const record of records) {
-    if (!record.anchor) continue;
-    const matches = findRangeMatchesForAnchor(record.anchor, snapshot);
-    if (matches.length !== 1) continue;
-    const [match] = matches;
+    const match = findLookupRangeMatch(
+      record,
+      snapshot,
+      normalizedSnapshot,
+    );
+    if (!match) continue;
     if (rangeIntersectsSelector(match.range, `.${LOOKUP_CLASS}`)) continue;
     plan.push({ record, match });
   }
@@ -856,12 +863,192 @@ function applyLookupMarkers(records: VocabularyRecord[]): void {
     });
 }
 
+function findLookupRangeMatch(
+  record: VocabularyRecord,
+  snapshot: TextSnapshot,
+  normalizedSnapshot: NormalizedTextMap,
+): RangeMatch | undefined {
+  const anchorMatches = record.anchor
+    ? findRangeMatchesForAnchor(record.anchor, snapshot)
+    : [];
+
+  if (anchorMatches.length === 1) return anchorMatches[0];
+
+  if (anchorMatches.length > 1) {
+    const resolved = resolveLookupAnchorMatches(record, anchorMatches, snapshot);
+    if (resolved) return resolved;
+  }
+
+  return findLookupRangeMatchByContext(record, snapshot, normalizedSnapshot);
+}
+
+function resolveLookupAnchorMatches(
+  record: VocabularyRecord,
+  matches: RangeMatch[],
+  snapshot: TextSnapshot,
+): RangeMatch | undefined {
+  const scored = matches.map((match) => ({
+    match,
+    score: scoreLookupMatch(record, match, snapshot),
+  }));
+  scored.sort((left, right) => right.score - left.score);
+
+  if (scored[0] && scored[0].score > (scored[1]?.score ?? Number.NEGATIVE_INFINITY)) {
+    return scored[0].match;
+  }
+
+  if (record.anchor) {
+    return [...matches].sort(
+      (left, right) =>
+        Math.abs(left.start - record.anchor!.textStart) -
+        Math.abs(right.start - record.anchor!.textStart),
+    )[0];
+  }
+
+  return undefined;
+}
+
+function scoreLookupMatch(
+  record: VocabularyRecord,
+  match: RangeMatch,
+  snapshot: TextSnapshot,
+): number {
+  let score = 0;
+  if (record.anchor) {
+    score -= Math.abs(match.start - record.anchor.textStart);
+  }
+
+  const context = normalizeSearchText(record.contextSentence);
+  if (context) {
+    const windowStart = Math.max(0, match.start - record.contextSentence.length);
+    const windowEnd = Math.min(
+      snapshot.text.length,
+      match.start + record.word.length + record.contextSentence.length,
+    );
+    const windowText = normalizeSearchText(
+      snapshot.text.slice(windowStart, windowEnd),
+    );
+    if (windowText.includes(context)) score += 10000;
+    else if (windowText.includes(normalizeSearchText(record.word))) score += 100;
+  }
+
+  return score;
+}
+
+function findLookupRangeMatchByContext(
+  record: VocabularyRecord,
+  snapshot: TextSnapshot,
+  normalizedSnapshot: NormalizedTextMap,
+): RangeMatch | undefined {
+  const context = normalizeSearchText(record.contextSentence);
+  const word = (record.anchor?.selectedText || record.word).trim();
+  const normalizedWord = normalizeSearchText(word);
+  if (!context || !normalizedWord) return undefined;
+
+  const contextMatches = findAllTextMatches(
+    normalizedSnapshot.text.toLowerCase(),
+    context.toLowerCase(),
+  );
+  if (contextMatches.length === 0) return undefined;
+
+  const candidates: RangeMatch[] = [];
+  for (const normalizedStart of contextMatches) {
+    const normalizedEnd = normalizedStart + context.length;
+    const originalStart = normalizedSnapshot.indexMap[normalizedStart];
+    const originalEnd =
+      normalizedSnapshot.indexMap[normalizedEnd - 1] !== undefined
+        ? normalizedSnapshot.indexMap[normalizedEnd - 1] + 1
+        : snapshot.text.length;
+    const slice = snapshot.text.slice(originalStart, originalEnd);
+    const offsets = findWordOffsetsInText(slice, word);
+
+    for (const offset of offsets) {
+      const start = originalStart + offset.start;
+      const end = originalStart + offset.end;
+      const range = createRangeFromTextOffsets(start, end, snapshot);
+      if (!range || range.collapsed) continue;
+      if (normalizeSearchText(range.toString()) !== normalizedWord) continue;
+      candidates.push({ range, start });
+    }
+  }
+
+  if (candidates.length === 0) return undefined;
+  if (candidates.length === 1) return candidates[0];
+
+  if (record.anchor) {
+    return candidates.sort(
+      (left, right) =>
+        Math.abs(left.start - record.anchor!.textStart) -
+        Math.abs(right.start - record.anchor!.textStart),
+    )[0];
+  }
+
+  return candidates[0];
+}
+
+interface NormalizedTextMap {
+  text: string;
+  indexMap: number[];
+}
+
+function createNormalizedTextMap(value: string): NormalizedTextMap {
+  let text = "";
+  const indexMap: number[] = [];
+  let previousWasWhitespace = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (/\s/.test(char)) {
+      if (previousWasWhitespace) continue;
+      text += " ";
+      indexMap.push(index);
+      previousWasWhitespace = true;
+      continue;
+    }
+
+    text += char;
+    indexMap.push(index);
+    previousWasWhitespace = false;
+  }
+
+  return { text, indexMap };
+}
+
+function normalizeSearchText(value: string | undefined): string {
+  return (value ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function findWordOffsetsInText(
+  source: string,
+  target: string,
+): Array<{ start: number; end: number }> {
+  const matches: Array<{ start: number; end: number }> = [];
+  const normalizedTarget = target.trim().toLowerCase();
+  if (!normalizedTarget) return matches;
+
+  const lowerSource = source.toLowerCase();
+  let index = lowerSource.indexOf(normalizedTarget);
+  while (index !== -1) {
+    const end = index + normalizedTarget.length;
+    if (isWordBoundary(source[index - 1]) && isWordBoundary(source[end])) {
+      matches.push({ start: index, end });
+    }
+    index = lowerSource.indexOf(normalizedTarget, index + 1);
+  }
+
+  return matches;
+}
+
+function isWordBoundary(char: string | undefined): boolean {
+  return !char || !/[A-Za-z0-9]/.test(char);
+}
+
 function wrapLookupRange(range: Range, record: VocabularyRecord): void {
   if (rangeIntersectsSelector(range, `.${LOOKUP_CLASS}`)) return;
 
   const wrapper = document.createElement("span");
   wrapper.className = LOOKUP_CLASS;
-  wrapper.dataset.remarkerExplanationId = record.id;
+  wrapper.dataset.remarkerVocabularyId = record.id;
   wrapper.style.background = "transparent";
   wrapper.style.borderBottom = `2px solid ${LOOKUP_UNDERLINE_COLOR}`;
   wrapper.style.cursor = "help";

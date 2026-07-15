@@ -1,6 +1,5 @@
 import type {
   AppSettings,
-  ExplanationRecord,
   FootprintListItem,
   FootprintRecord,
   HighlightColor,
@@ -12,7 +11,6 @@ import type {
 
 export type RuntimeMessage =
   | { type: "GET_HIGHLIGHTS_FOR_URL"; urlKey: string }
-  | { type: "GET_WORD_EXPLANATIONS_FOR_URL"; urlKey: string }
   | { type: "GET_VOCABULARY_FOR_URL"; urlKey: string }
   | { type: "GET_FOOTPRINT"; sourceUrl: string }
   | { type: "ADD_FOOTPRINT"; sourceUrl: string; sourceTitle: string }
@@ -45,12 +43,9 @@ export type RuntimeMessage =
         settings?: AppSettings;
         highlights?: HighlightRecord[];
         vocabulary?: VocabularyRecord[];
-        explanations?: ExplanationRecord[];
         footprints?: FootprintRecord[];
       };
-    }
-  | { type: "DELETE_EXPLANATION"; id: string }
-  | { type: "CLEAR_EXPLANATIONS" };
+    };
 
 export interface PronunciationResult {
   provider: "merriam-webster" | "free-dictionary" | "speech-synthesis";

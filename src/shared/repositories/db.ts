@@ -1,6 +1,5 @@
 import type {
   AppSettings,
-  ExplanationRecord,
   FootprintRecord,
   HighlightRecord,
   LlmProvider,
@@ -27,7 +26,6 @@ type StoreName =
   | "settings"
   | "highlights"
   | "vocabulary"
-  | "explanations"
   | "footprints"
   | "siteSettings";
 
@@ -64,16 +62,8 @@ export function openRemarkerDb(): Promise<IDBDatabase> {
           unique: false,
         });
         ensureIndex(vocabularyStore, "urlKey", "urlKey", { unique: false });
+        ensureIndex(vocabularyStore, "cacheKey", "cacheKey", { unique: true });
         ensureIndex(vocabularyStore, "createdAt", "createdAt", { unique: false });
-      }
-
-      const explanationStore = db.objectStoreNames.contains("explanations")
-        ? transaction?.objectStore("explanations")
-        : db.createObjectStore("explanations", { keyPath: "id" });
-      if (explanationStore) {
-        ensureIndex(explanationStore, "cacheKey", "cacheKey", { unique: true });
-        ensureIndex(explanationStore, "urlKey", "urlKey", { unique: false });
-        ensureIndex(explanationStore, "createdAt", "createdAt", { unique: false });
       }
 
       const footprintStore = db.objectStoreNames.contains("footprints")
@@ -88,6 +78,10 @@ export function openRemarkerDb(): Promise<IDBDatabase> {
 
       if (!db.objectStoreNames.contains("siteSettings")) {
         db.createObjectStore("siteSettings", { keyPath: "hostname" });
+      }
+
+      if (db.objectStoreNames.contains("explanations")) {
+        db.deleteObjectStore("explanations");
       }
     };
 
@@ -164,10 +158,10 @@ export async function getHighlightsForUrl(urlKey: string): Promise<HighlightReco
   return requestToPromise<HighlightRecord[]>(index.getAll(urlKey));
 }
 
-export async function getExplanationByCacheKey(cacheKey: string): Promise<ExplanationRecord | undefined> {
-  const store = await tx("explanations", "readonly");
+export async function getVocabularyByCacheKey(cacheKey: string): Promise<VocabularyRecord | undefined> {
+  const store = await tx("vocabulary", "readonly");
   const index = store.index("cacheKey");
-  return requestToPromise<ExplanationRecord | undefined>(index.get(cacheKey));
+  return requestToPromise<VocabularyRecord | undefined>(index.get(cacheKey));
 }
 
 export async function getFootprint(urlKey: string): Promise<FootprintRecord | undefined> {
@@ -191,14 +185,12 @@ export async function importSnapshot(snapshot: {
   footprints?: FootprintRecord[];
   highlights?: HighlightRecord[];
   vocabulary?: VocabularyRecord[];
-  explanations?: ExplanationRecord[];
   siteSettings?: SiteSetting[];
 }): Promise<void> {
   if (snapshot.settings) await saveSettings(snapshot.settings);
   for (const record of snapshot.footprints ?? []) await putInStore("footprints", record);
   for (const record of snapshot.highlights ?? []) await putInStore("highlights", record);
   for (const record of snapshot.vocabulary ?? []) await putInStore("vocabulary", record);
-  for (const record of snapshot.explanations ?? []) await putInStore("explanations", record);
   for (const record of snapshot.siteSettings ?? []) await saveSiteSetting(record);
 }
 

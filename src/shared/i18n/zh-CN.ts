@@ -52,14 +52,13 @@ export const zhCN: Messages = {
       footprints: "足迹",
       highlights: "划线",
       vocabulary: "生词表",
-      explanations: "查词记录",
       settings: "设置",
       about: "关于",
     },
     columns: {
       pageTitle: "页面标题",
       site: "站点名称",
-      browsedAt: "浏览时间",
+      browsedAt: "创建时间",
       highlightCount: "划线",
       lookupCount: "生词",
       highlightedText: "划线文本",
@@ -92,9 +91,7 @@ export const zhCN: Messages = {
       speakWord: "播放 {{word}} 发音",
       deleteVocabularyItem: "删除生词",
       copyExplanation: "复制解释",
-      deleteExplanation: "删除解释",
       export: "导出",
-      clearCache: "清空缓存",
       exportJson: "导出 JSON",
       exportMarkdown: "导出 Markdown",
       importJson: "导入 JSON",
@@ -105,8 +102,6 @@ export const zhCN: Messages = {
       archiveFootprint: "归档这条足迹？归档后将不再显示在当前列表中。",
       deleteHighlight: "删除这条划线？",
       deleteVocabularyItem: "删除这个生词？",
-      deleteExplanation: "删除这条查词记录？",
-      clearExplanations: "清空所有查词记录？",
     },
     settings: {
       llm: "大模型",
@@ -120,7 +115,7 @@ export const zhCN: Messages = {
         zhipu: "有普惠模型可免费使用，但速度偏慢。",
         gemini: "有一定量的免费额度，官方定期重置，完全够用。",
         openrouter:
-          "有免费模型可供使用，可使用 openrouter/free 或到官方市场上选择。",
+          "有免费模型可供使用，可使用 openrouter/free 或到官方市场上选择，但不是很稳定。",
         deepseek:
           "官方暂无免费额度，但是 v4 flash 非常便宜，30 次调用约 2 分钱。",
         aliyun: "新用户有免费额度，免费额度用完后开始计费。",
@@ -178,7 +173,6 @@ export const zhCN: Messages = {
       pending: "这条划线尚未在来源页面完成恢复确认。",
     },
     export: {
-      explanationsTitle: "查词记录",
       exported: "导出时间",
       source: "来源",
       model: "模型",

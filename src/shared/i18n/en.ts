@@ -50,14 +50,13 @@ export const en = {
       footprints: "Footprints",
       highlights: "Highlights",
       vocabulary: "Vocabulary",
-      explanations: "Lookup Records",
       settings: "Settings",
       about: "About",
     },
     columns: {
       pageTitle: "Page Title",
       site: "Site",
-      browsedAt: "Browsed",
+      browsedAt: "Created",
       highlightCount: "Highlights",
       lookupCount: "Vocabulary",
       highlightedText: "Highlighted Text",
@@ -90,9 +89,7 @@ export const en = {
       speakWord: "Speak {{word}}",
       deleteVocabularyItem: "Delete vocabulary item",
       copyExplanation: "Copy explanation",
-      deleteExplanation: "Delete explanation",
       export: "Export",
-      clearCache: "Clear Cache",
       exportJson: "Export JSON",
       exportMarkdown: "Export Markdown",
       importJson: "Import JSON",
@@ -104,8 +101,6 @@ export const en = {
         "Archive this footprint? It will be hidden from the current list.",
       deleteHighlight: "Delete this highlight?",
       deleteVocabularyItem: "Delete this vocabulary item?",
-      deleteExplanation: "Delete this lookup record?",
-      clearExplanations: "Clear all lookup records?",
     },
     settings: {
       llm: "LLM",
@@ -120,7 +115,7 @@ export const en = {
           "Affordable models are available for free, but responses can be slower.",
         gemini: "Includes a practical free quota that Google resets regularly.",
         openrouter:
-          "Free models are available; use openrouter/free or choose one from the marketplace.",
+          "Free models are available; use openrouter/free or choose one from the marketplace, but they are not stable enough.",
         deepseek:
           "No official free quota yet, but v4 flash is very inexpensive, about CNY 0.02 for 30 calls.",
         aliyun:
@@ -185,7 +180,6 @@ export const en = {
       pending: "This highlight has not been restored on a source page yet.",
     },
     export: {
-      explanationsTitle: "Lookup Records",
       exported: "Exported",
       source: "Source",
       model: "Model",

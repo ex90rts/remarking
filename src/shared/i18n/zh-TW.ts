@@ -52,14 +52,13 @@ export const zhTW: Messages = {
       footprints: "足跡",
       highlights: "標記",
       vocabulary: "生字表",
-      explanations: "查詞記錄",
       settings: "設定",
       about: "關於",
     },
     columns: {
       pageTitle: "頁面標題",
       site: "站點名稱",
-      browsedAt: "瀏覽時間",
+      browsedAt: "建立時間",
       highlightCount: "標記",
       lookupCount: "生詞",
       highlightedText: "標記文字",
@@ -92,9 +91,7 @@ export const zhTW: Messages = {
       speakWord: "播放 {{word}} 發音",
       deleteVocabularyItem: "刪除生字",
       copyExplanation: "複製解釋",
-      deleteExplanation: "刪除解釋",
       export: "匯出",
-      clearCache: "清除快取",
       exportJson: "匯出 JSON",
       exportMarkdown: "匯出 Markdown",
       importJson: "匯入 JSON",
@@ -105,8 +102,6 @@ export const zhTW: Messages = {
       archiveFootprint: "歸檔這條足跡？歸檔後將不再顯示於目前列表。",
       deleteHighlight: "刪除這條標記？",
       deleteVocabularyItem: "刪除這個生字？",
-      deleteExplanation: "刪除這條查詞記錄？",
-      clearExplanations: "清除所有查詞記錄？",
     },
     settings: {
       llm: "大型語言模型",
@@ -120,7 +115,7 @@ export const zhTW: Messages = {
         zhipu: "有普惠模型可免費使用，但速度偏慢。",
         gemini: "有一定量的免費額度，官方定期重置，完全夠用。",
         openrouter:
-          "有免費模型可供使用，可使用 openrouter/free 或到官方市場上選擇。",
+          "有免費模型可供使用，可使用 openrouter/free 或到官方市場上選擇，但不是非常穩定。",
         deepseek:
           "官方暫無免費額度，但是 v4 flash 非常便宜，30 次呼叫約 2 分錢。",
         aliyun: "新使用者有免費額度，免費額度用完後開始計費。",
@@ -178,7 +173,6 @@ export const zhTW: Messages = {
       pending: "這條標記尚未在來源頁面完成恢復確認。",
     },
     export: {
-      explanationsTitle: "查詞記錄",
       exported: "匯出時間",
       source: "來源",
       model: "模型",

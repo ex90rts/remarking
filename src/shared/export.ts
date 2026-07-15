@@ -3,6 +3,7 @@ import type {
   HighlightRecord,
   VocabularyRecord,
 } from "./types";
+import { SCHEMA_VERSION } from "./types";
 
 export function createBackupJson(input: {
   settings: unknown;
@@ -42,7 +43,7 @@ export function createBackupJson(input: {
   return JSON.stringify(
     {
       exportedAt: new Date().toISOString(),
-      schemaVersion: 2,
+      schemaVersion: SCHEMA_VERSION,
       settings,
       footprints,
       highlights: input.highlights,

@@ -15,12 +15,12 @@ Remarker may process the following data to provide its features:
 
 - Selected text and surrounding page context, used for AI word lookup or translation.
 - Page URLs and page titles, used to restore highlights and vocabulary marks on previously visited pages.
-- User-created highlights, vocabulary records, lookup results, and extension settings.
+- User-created highlights, vocabulary records with lookup results, and extension settings.
 - Optional API keys entered by the user for OpenAI-compatible LLM providers or dictionary services.
 
 ## Local Storage
 
-By default, Remarker stores highlights, vocabulary, settings, cached lookup results, and site preferences locally in the user's browser using IndexedDB and Chrome local storage.
+By default, Remarker stores highlights, vocabulary records, settings, and site preferences locally in the user's browser using IndexedDB and Chrome local storage. Word lookup results are stored as part of vocabulary records; text translation results are not persisted.
 
 The developer does not operate a server that collects or stores this data.
 
@@ -42,7 +42,7 @@ Remarker does not load or execute remote JavaScript or WebAssembly. All extensio
 
 ## Data Deletion
 
-Users can delete highlights, vocabulary records, lookup records, and settings from the extension interface. Users can also remove all locally stored extension data by uninstalling the extension or clearing extension storage in the browser.
+Users can delete highlights, vocabulary records, and settings from the extension interface. Users can also remove all locally stored extension data by uninstalling the extension or clearing extension storage in the browser.
 
 ## Contact
 

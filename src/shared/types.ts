@@ -37,7 +37,7 @@ export const LLM_PROVIDER_PRESETS: LlmProviderPreset[] = [
     value: "openrouter",
     label: "OpenRouter",
     baseUrl: "https://openrouter.ai/api/v1",
-    model: "google/gemini-2.5-flash",
+    model: "openrouter/free",
   },
   {
     value: "gemini",
@@ -110,12 +110,15 @@ export interface VocabularyRecord {
   id: string;
   word: string;
   normalizedWord: string;
-  urlKey?: string;
+  urlKey: string;
   sourceUrl: string;
   sourceTitle: string;
   contextSentence: string;
   anchor?: TextAnchor;
   translation?: string;
+  cacheKey?: string;
+  contextHash?: string;
+  model?: string;
   audioProvider?: string;
   audioUrl?: string;
   createdAt: string;
@@ -153,18 +156,14 @@ export interface SiteSetting {
   updatedAt: string;
 }
 
-export interface ExplanationRecord {
+export interface SelectionLookupResult {
   id: string;
-  cacheKey: string;
-  selectionKind?: "word" | "text";
+  selectionKind: "word" | "text";
   selectedText: string;
   context: string;
-  contextHash: string;
-  urlKey?: string;
   sourceUrl: string;
   sourceTitle: string;
   anchor?: TextAnchor;
-  model: string;
   result: string;
   createdAt: string;
 }
@@ -294,4 +293,4 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
 };
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
