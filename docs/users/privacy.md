@@ -24,6 +24,13 @@ By default, Remarker stores highlights, vocabulary records, settings, and site p
 
 The developer does not operate a server that collects or stores this data.
 
+## Browser Permissions
+
+Remarker requests only the browser access needed for its visible features:
+
+- `storage`: saves settings such as global enablement and disabled-site preferences in browser local storage.
+- Host access on `http://*/*` and `https://*/*`: lets the packaged content script run on web pages so Remarker can highlight selected text, restore saved marks, identify the current page for footprints, and send user-requested lookup or pronunciation requests to the configured remote service.
+
 ## External Requests
 
 When the user starts an AI lookup or translation, Remarker sends the selected text, surrounding context, and prompt content to the LLM endpoint configured by the user. This may be a third-party OpenAI-compatible provider selected by the user.
