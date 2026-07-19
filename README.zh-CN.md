@@ -7,11 +7,13 @@ ReMarker 是一个本地优先的 Chrome 浏览器插件，面向深度网页阅
 ReMarker 适合学生、研究者、工程师和外语学习者阅读外文文章、技术文档、长文、论文和网页资料时使用。它把理解、摘录、积累和复习放在同一个可重复的阅读流程里。
 
 <div align="center">
-  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-01.webp" alt="截图" width="80%">
+  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-01.webp" alt="截图" width="80%" style="border: 1px solid #ddd; padding: 4px; display: inline-block; border-radius: 4px;">
 </div>
 
+<br />
+
 <div align="center">
-  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-04.webp" alt="截图" width="80%">
+  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-04.webp" alt="截图" width="80%" style="border: 1px solid #ddd; padding: 4px; display: inline-block; border-radius: 4px;">
 </div>
 
 ## 为什么使用 ReMarker

@@ -7,11 +7,13 @@ ReMarker is a local-first Chrome extension for deep web reading, language learni
 ReMarker is useful for students, researchers, engineers, and language learners who read foreign-language articles, documentation, essays, papers, or long-form web content and want a private, repeatable workflow for understanding, collecting, and reviewing what they read.
 
 <div align="center">
-  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-01.webp" alt="截图" width="80%">
+  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-01.webp" alt="截图" width="80%" style="border: 1px solid #ddd; padding: 4px; display: inline-block; border-radius: 4px;">
 </div>
 
+<br />
+
 <div align="center">
-  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-04.webp" alt="截图" width="80%">
+  <img src="https://ex90rts.github.io/remarker/assets/images/screenshot-04.webp" alt="截图" width="80%" style="border: 1px solid #ddd; padding: 4px; display: inline-block; border-radius: 4px;">
 </div>
 
 ## Why ReMarker
